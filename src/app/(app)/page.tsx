@@ -2,8 +2,8 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-
-import { LogoutButton } from "@/components/auth/logout-button";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
 export default async function HomePage() {
   const session = await auth.api.getSession({
@@ -15,17 +15,23 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center gap-6 p-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">
-          ¡Hola, {session.user.name}!
+    <main className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-5xl flex-col justify-center px-4 py-10 sm:px-6">
+      <section className="max-w-2xl space-y-5">
+        <p className="text-sm text-muted-foreground">Hola, {session.user.name}</p>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Ordená tus categorías antes de empezar a registrar gastos.
         </h1>
-        <p className="text-muted-foreground">
-          Tu gestor de gastos está en construcción.
+        <p className="max-w-xl leading-7 text-muted-foreground">
+          Creá categorías personales y, cuando te vincules con otra persona, un
+          catálogo compartido. Los gastos todavía no están disponibles.
         </p>
-      </div>
-
-      <LogoutButton />
+        <Link
+          href="/categories"
+          className={buttonVariants({ className: "min-h-11" })}
+        >
+          Administrar categorías
+        </Link>
+      </section>
     </main>
   );
 }

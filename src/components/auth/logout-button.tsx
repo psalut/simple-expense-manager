@@ -37,6 +37,7 @@ export function LogoutButton() {
     <div className="space-y-2">
       <Button
         variant="outline"
+        className="min-h-11"
         onClick={handleLogout}
         disabled={isLoading}
       >
