@@ -7,26 +7,31 @@ import {
   CategoryError,
   createCategory,
   deleteArchivedCategory,
-  listCategories,
+  listCategoriesForSharedSpace,
+  listPersonalCategories,
+  restoreArchivedCategory,
   updateCategory,
 } from "@/lib/server/categories";
-import {
-  acceptSharedSpaceInvitation,
-  createSharedSpace,
-  createSharedSpaceInvitation,
-  SharedSpaceError,
-} from "@/lib/server/shared-spaces";
 import {
   AuthenticationRequiredError,
   getAuthenticatedUserId,
 } from "@/lib/server/authenticated-user";
+import type { CategoryView } from "@/lib/categories/types";
 
 export async function createCategoryAction(
   input: unknown,
+  rawExpectedSharedSpaceId: unknown,
 ): Promise<ActionResult<{ id: string }>> {
   return runAction(async (userId) => {
-    const category = await createCategory(userId, input);
-    revalidatePath("/categories");
+    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
+    const draft = asRecord(input);
+    const category = await createCategory(userId, {
+      name: draft.name,
+      description: draft.description,
+      scope: sharedSpaceId === null ? "personal" : "shared",
+      sharedSpaceId,
+    });
+    revalidateCategoryViews();
     return { id: category.id };
   });
 }
@@ -34,70 +39,99 @@ export async function createCategoryAction(
 export async function updateCategoryAction(
   categoryId: unknown,
   input: unknown,
+  rawExpectedSharedSpaceId: unknown,
 ): Promise<ActionResult<{ id: string }>> {
   return runAction(async (userId) => {
-    const category = await updateCategory(userId, categoryId, input);
-    revalidatePath("/categories");
+    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
+    const category = await updateCategory(
+      userId,
+      categoryId,
+      input,
+      sharedSpaceId,
+    );
+    revalidateCategoryViews();
     return { id: category.id };
   });
 }
 
 export async function archiveCategoryAction(
   categoryId: unknown,
+  rawExpectedSharedSpaceId: unknown,
 ): Promise<ActionResult<{ id: string }>> {
   return runAction(async (userId) => {
-    const category = await archiveCategory(userId, categoryId);
-    revalidatePath("/categories");
+    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
+    const category = await archiveCategory(
+      userId,
+      categoryId,
+      sharedSpaceId,
+    );
+    revalidateCategoryViews();
     return { id: category.id };
   });
 }
 
 export async function deleteArchivedCategoryAction(
   categoryId: unknown,
+  rawExpectedSharedSpaceId: unknown,
 ): Promise<ActionResult<{ id: string }>> {
   return runAction(async (userId) => {
-    const category = await deleteArchivedCategory(userId, categoryId);
-    revalidatePath("/categories");
+    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
+    const category = await deleteArchivedCategory(
+      userId,
+      categoryId,
+      sharedSpaceId,
+    );
+    revalidateCategoryViews();
     return { id: category.id };
   });
 }
 
-export async function getArchivedCategoriesAction(): Promise<
-  ActionResult<Awaited<ReturnType<typeof listCategories>>>
-> {
-  return runAction(async (userId) =>
-    (await listCategories(userId, true)).filter((category) => category.isArchived),
-  );
-}
-
-export async function createSharedSpaceAction(
-  name: unknown,
-): Promise<ActionResult<null>> {
+export async function restoreArchivedCategoryAction(
+  categoryId: unknown,
+  rawExpectedSharedSpaceId: unknown,
+): Promise<ActionResult<{ id: string }>> {
   return runAction(async (userId) => {
-    await createSharedSpace(userId, name);
-    revalidatePath("/categories");
-    return null;
+    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
+    const category = await restoreArchivedCategory(
+      userId,
+      categoryId,
+      sharedSpaceId,
+    );
+    revalidateCategoryViews();
+    return { id: category.id };
   });
 }
 
-export async function createSharedSpaceInvitationAction(
-  sharedSpaceId: unknown,
-): Promise<ActionResult<{ code: string; expiresAt: string }>> {
+export async function getArchivedCategoriesAction(
+  rawExpectedSharedSpaceId: unknown,
+): Promise<ActionResult<CategoryView[]>> {
   return runAction(async (userId) => {
-    const invitation = await createSharedSpaceInvitation(userId, sharedSpaceId);
-    revalidatePath("/categories");
-    return invitation;
+    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
+    const categories =
+      sharedSpaceId === null
+        ? await listPersonalCategories(userId, true)
+        : await listCategoriesForSharedSpace(userId, sharedSpaceId, true);
+    return categories.filter((category) => category.isArchived);
   });
 }
 
-export async function acceptSharedSpaceInvitationAction(
-  code: unknown,
-): Promise<ActionResult<null>> {
-  return runAction(async (userId) => {
-    await acceptSharedSpaceInvitation(userId, code);
-    revalidatePath("/categories");
-    return null;
-  });
+function readExpectedSharedSpaceId(value: unknown): string | null {
+  if (value === null) return null;
+  if (typeof value === "string" && value.trim() && value.length <= 100) {
+    return value.trim();
+  }
+  throw new CategoryError("Elegí un catálogo válido.");
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function revalidateCategoryViews() {
+  revalidatePath("/categories");
+  revalidatePath("/groups/[id]/categories", "page");
 }
 
 async function runAction<T>(
@@ -109,8 +143,7 @@ async function runAction<T>(
   } catch (error) {
     if (
       error instanceof AuthenticationRequiredError ||
-      error instanceof CategoryError ||
-      error instanceof SharedSpaceError
+      error instanceof CategoryError
     ) {
       return { success: false, error: error.message };
     }

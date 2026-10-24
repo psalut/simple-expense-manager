@@ -93,6 +93,17 @@ export function canManageCategory(
   );
 }
 
+export function categoryBelongsToScope(
+  category: CategoryOwnership,
+  expectedSharedSpaceId: string | null,
+): boolean {
+  if (expectedSharedSpaceId === null) {
+    return category.userId !== null && category.sharedSpaceId === null;
+  }
+
+  return category.userId === null && category.sharedSpaceId === expectedSharedSpaceId;
+}
+
 export function canDeleteArchivedCategory(
   category: CategoryOwnership & { isArchived: boolean },
   userId: string,

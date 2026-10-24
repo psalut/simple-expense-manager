@@ -54,18 +54,7 @@ export async function isUserMemberOfSharedSpace(
 export async function getSharedSpacesForUser(
   userId: string,
 ): Promise<SharedSpaceOverview[]> {
-  const spaces = await db
-    .select({
-      id: sharedSpaces.id,
-      name: sharedSpaces.name,
-    })
-    .from(sharedSpaceMembers)
-    .innerJoin(
-      sharedSpaces,
-      eq(sharedSpaceMembers.sharedSpaceId, sharedSpaces.id),
-    )
-    .where(eq(sharedSpaceMembers.userId, userId))
-    .orderBy(asc(sharedSpaces.name), asc(sharedSpaces.id));
+  const spaces = await getSharedSpaceSummariesForUser(userId);
 
   if (spaces.length === 0) return [];
 
@@ -96,6 +85,23 @@ export async function getSharedSpacesForUser(
     ...space,
     members: membersBySpaceId.get(space.id) ?? [],
   }));
+}
+
+export async function getSharedSpaceSummariesForUser(
+  userId: string,
+): Promise<{ id: string; name: string }[]> {
+  return db
+    .select({
+      id: sharedSpaces.id,
+      name: sharedSpaces.name,
+    })
+    .from(sharedSpaceMembers)
+    .innerJoin(
+      sharedSpaces,
+      eq(sharedSpaceMembers.sharedSpaceId, sharedSpaces.id),
+    )
+    .where(eq(sharedSpaceMembers.userId, userId))
+    .orderBy(asc(sharedSpaces.name), asc(sharedSpaces.id));
 }
 
 export async function createSharedSpace(

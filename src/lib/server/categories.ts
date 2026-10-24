@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { categories } from "@/db/categories-schema";
 import { sharedSpaces } from "@/db/shared-space-schema";
 import {
+  categoryBelongsToScope,
   canDeleteArchivedCategory,
   canManageCategory,
   isCategoryEligible,
@@ -67,6 +68,67 @@ export async function listCategories(
     ...personal.map((category) => toCategoryView(category, null)),
     ...shared.map((category) => toCategoryView(category, category.sharedSpaceName)),
   ];
+}
+
+export async function listPersonalCategories(
+  userId: string,
+  includeArchived = false,
+): Promise<CategoryView[]> {
+  const [activeFilter] = includeArchived
+    ? []
+    : [eq(categories.isArchived, false)];
+  const personal = await db
+    .select()
+    .from(categories)
+    .where(
+      and(
+        eq(categories.userId, userId),
+        ...(activeFilter ? [activeFilter] : []),
+      ),
+    )
+    .orderBy(asc(categories.name));
+
+  return personal.map((category) => toCategoryView(category, null));
+}
+
+export async function listCategoriesForSharedSpace(
+  userId: string,
+  sharedSpaceId: string,
+  includeArchived = false,
+): Promise<CategoryView[]> {
+  if (
+    !sharedSpaceId ||
+    sharedSpaceId.length > 100 ||
+    !(await isUserMemberOfSharedSpace(userId, sharedSpaceId))
+  ) {
+    throw new CategoryError("No tenés acceso a ese grupo.");
+  }
+
+  const shared = await db
+    .select({
+      id: categories.id,
+      name: categories.name,
+      description: categories.description,
+      userId: categories.userId,
+      sharedSpaceId: categories.sharedSpaceId,
+      isArchived: categories.isArchived,
+      createdAt: categories.createdAt,
+      updatedAt: categories.updatedAt,
+      sharedSpaceName: sharedSpaces.name,
+    })
+    .from(categories)
+    .innerJoin(sharedSpaces, eq(categories.sharedSpaceId, sharedSpaces.id))
+    .where(
+      and(
+        eq(categories.sharedSpaceId, sharedSpaceId),
+        ...(includeArchived ? [] : [eq(categories.isArchived, false)]),
+      ),
+    )
+    .orderBy(asc(categories.name));
+
+  return shared.map((category) =>
+    toCategoryView(category, category.sharedSpaceName),
+  );
 }
 
 export async function listEligibleCategories(
@@ -170,6 +232,7 @@ export async function updateCategory(
   userId: string,
   categoryId: unknown,
   input: unknown,
+  expectedSharedSpaceId: string | null,
 ) {
   if (typeof categoryId !== "string" || categoryId.length > 100) {
     throw new CategoryError("No se encontró la categoría o no tenés permiso.");
@@ -181,7 +244,11 @@ export async function updateCategory(
   });
   if (!draft.success) throw new CategoryError(draft.error);
 
-  const existing = await findManageableCategory(userId, categoryId);
+  const existing = await findManageableCategory(
+    userId,
+    categoryId,
+    expectedSharedSpaceId,
+  );
   if (!existing) {
     throw new CategoryError("No se encontró la categoría o no tenés permiso.");
   }
@@ -205,11 +272,19 @@ export async function updateCategory(
   }
 }
 
-export async function archiveCategory(userId: string, categoryId: unknown) {
+export async function archiveCategory(
+  userId: string,
+  categoryId: unknown,
+  expectedSharedSpaceId: string | null,
+) {
   if (typeof categoryId !== "string" || categoryId.length > 100) {
     throw new CategoryError("No se encontró la categoría o no tenés permiso.");
   }
-  const existing = await findManageableCategory(userId, categoryId);
+  const existing = await findManageableCategory(
+    userId,
+    categoryId,
+    expectedSharedSpaceId,
+  );
   if (!existing) {
     throw new CategoryError("No se encontró la categoría o no tenés permiso.");
   }
@@ -226,6 +301,7 @@ export async function archiveCategory(userId: string, categoryId: unknown) {
 export async function deleteArchivedCategory(
   userId: string,
   rawCategoryId: unknown,
+  expectedSharedSpaceId: string | null,
 ): Promise<{ id: string }> {
   const categoryId =
     typeof rawCategoryId === "string" ? rawCategoryId.trim() : "";
@@ -234,19 +310,24 @@ export async function deleteArchivedCategory(
   }
 
   const memberSpaceIds = await getSharedSpaceIdsForUser(userId);
-  const ownership = memberSpaceIds.length
-    ? or(
-        eq(categories.userId, userId),
-        inArray(categories.sharedSpaceId, memberSpaceIds),
-      )
-    : eq(categories.userId, userId);
+  const ownership =
+    expectedSharedSpaceId === null
+      ? eq(categories.userId, userId)
+      : and(
+          eq(categories.sharedSpaceId, expectedSharedSpaceId),
+          inArray(categories.sharedSpaceId, memberSpaceIds),
+        );
   const [category] = await db
     .select()
     .from(categories)
     .where(and(eq(categories.id, categoryId), ownership))
     .limit(1);
 
-  if (!category || !canManageCategory(category, userId, memberSpaceIds)) {
+  if (
+    !category ||
+    !categoryBelongsToScope(category, expectedSharedSpaceId) ||
+    !canManageCategory(category, userId, memberSpaceIds)
+  ) {
     throw new CategoryError("No se encontró la categoría o no tenés permiso.");
   }
   if (!canDeleteArchivedCategory(category, userId, memberSpaceIds)) {
@@ -275,7 +356,64 @@ export async function deleteArchivedCategory(
   return deleted;
 }
 
-async function findManageableCategory(userId: string, categoryId: string) {
+export async function restoreArchivedCategory(
+  userId: string,
+  rawCategoryId: unknown,
+  expectedSharedSpaceId: string | null,
+) {
+  const categoryId =
+    typeof rawCategoryId === "string" ? rawCategoryId.trim() : "";
+  if (!categoryId || categoryId.length > 100) {
+    throw new CategoryError("No se encontró la categoría o no tenés permiso.");
+  }
+
+  const existing = await findManageableCategory(
+    userId,
+    categoryId,
+    expectedSharedSpaceId,
+  );
+  if (!existing) {
+    throw new CategoryError("No se encontró la categoría o no tenés permiso.");
+  }
+  if (!existing.isArchived) {
+    throw new CategoryError("La categoría ya está activa.");
+  }
+
+  try {
+    const [category] = await db
+      .update(categories)
+      .set({ isArchived: false, updatedAt: new Date() })
+      .where(
+        and(
+          eq(categories.id, existing.id),
+          eq(categories.isArchived, true),
+        ),
+      )
+      .returning();
+
+    if (!category) {
+      throw new CategoryError(
+        "La categoría cambió mientras se procesaba. Actualizá la página e intentá de nuevo.",
+      );
+    }
+
+    return toCategoryView(category, null);
+  } catch (error) {
+    if (error instanceof CategoryError) throw error;
+    if (isCategoryNameConflict(error)) {
+      throw new CategoryError(
+        "Ya existe una categoría activa con ese nombre. Cambiale el nombre antes de restaurarla.",
+      );
+    }
+    throw error;
+  }
+}
+
+async function findManageableCategory(
+  userId: string,
+  categoryId: string,
+  expectedSharedSpaceId: string | null,
+) {
   const memberSpaceIds = await getSharedSpaceIdsForUser(userId);
   const ownership = memberSpaceIds.length
     ? or(
@@ -289,7 +427,11 @@ async function findManageableCategory(userId: string, categoryId: string) {
     .where(and(eq(categories.id, categoryId), ownership))
     .limit(1);
 
-  if (!category || !canManageCategory(category, userId, memberSpaceIds)) {
+  if (
+    !category ||
+    !categoryBelongsToScope(category, expectedSharedSpaceId) ||
+    !canManageCategory(category, userId, memberSpaceIds)
+  ) {
     return null;
   }
   return category;

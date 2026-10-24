@@ -316,13 +316,18 @@ Implementación inicial:
 2. **Mis gastos**: lista, orden por fecha, filtro simple por mes y CTA principal «Agregar gasto».
 3. **Nuevo / editar gasto**: importe, detalle, **selector único de categoría con sugerencia IA editable**, fecha (por defecto hoy), switch «Compartido» (desactivado por defecto) y selector de **grupo destino** solo al compartir. Categorías elegibles cambian según switch/grupo y conservan únicamente las selecciones válidas.
 4. **Compartidos**: selector/listado de grupos; dentro de cada uno, saldos individuales y gastos con pagador, sin funciones para saldar.
-5. **Cuenta / grupos**: listar, crear y unirse a varios grupos, invitar a más integrantes y cerrar sesión.
-6. **Categorías** (acceso secundario desde Cuenta): crear, editar y archivar con nombre y descripción, diferenciando claramente **Personales** y **Compartidas por grupo**, con un único flujo de formulario; elegir grupo al crear categoría compartida.
+5. **Grupos**: listar, crear y unirse a varios grupos, consultar integrantes y generar invitaciones individuales desde el detalle de cada grupo.
+6. **Categorías**: `/categories` administra categorías personales y muestra un acceso compacto por grupo. `/groups/[groupId]/categories` administra solo el catálogo del grupo validado en servidor; se puede llegar desde `/categories` o desde el detalle del grupo. El ámbito se infiere del contexto y no cambia al editar.
+7. **Cuenta**: opción discreta para cerrar sesión. La navegación principal enlaza a **Gastos**, **Grupos** y **Categorías**; mientras no exista el módulo de gastos, `/` conserva un placeholder.
 
 **Criterios de diseño:**
 
 - Diseñar primero para **360–390 px de ancho**, luego tablet y escritorio.
-- Navegación primaria mínima: **Mis gastos** y **Compartidos** (con selector simple de grupo); CTA de carga fácilmente alcanzable con una mano.
+- Los formularios de categorías se abren en un Drawer inferior en móvil y un Dialog centrado en escritorio. El mismo formulario crea y edita; el contexto define el ámbito y grupo. Errores y carga permanecen dentro del modal, que no se cierra si falla el guardado.
+- En `/categories` se listan solo categorías personales; cada grupo aparece como enlace a su catálogo propio. El detalle de grupo enlaza a `/groups/[groupId]/categories`. Cada catálogo muestra únicamente activas y sus propias archivadas; no repetir subsecciones archivadas vacías.
+- Las tarjetas de categoría limitan la descripción a dos líneas por defecto y permiten expandirla de forma discreta cuando desborda. El borrado definitivo solicita confirmación con AlertDialog; el flujo futuro de reasignación transaccional se implementa cuando existan gastos referenciados.
+- Navegación principal: **Gastos**, **Grupos** y **Categorías**. En móvil usa una barra inferior persistente con ícono, etiqueta, ruta activa visible y objetivos táctiles de al menos 44 × 44 px; respeta `safe-area-inset-bottom`, el teclado virtual y el espacio final del contenido. En escritorio usa una barra superior sin duplicar la navegación.
+- El destino **Gastos** enlaza a la ruta existente; la navegación no implica implementar el módulo de gastos en el refactor de categorías y grupos.
 - Campo de importe con teclado numérico adecuado; fechas y categorías con valores iniciales útiles.
 - El proceso de registrar un gasto debería requerir **muy pocos toques**; no abrir formularios extensos. La sugerencia de categoría debe aparecer en el selector sin abrir una conversación ni un modal de IA.
 - Mostrar un indicador discreto «Sugerida» y permitir que cualquier categoría se cambie con un toque. Si el usuario ya eligió, no volver a sugerir automáticamente.
@@ -339,9 +344,9 @@ src/
     (auth)/                # Login y registro
     (app)/
       gastos/              # Listado personal y formulario
-      compartidos/         # Lista de grupos + balance y gastos de grupo
-      cuenta/              # Usuario, vínculo y acceso a categorías
-      categorias/          # Gestión simple de categorías
+      groups/              # Lista, detalle, integrantes, invitaciones y catálogos por grupo
+        [id]/categories/   # Catálogo del grupo, con acceso verificado
+      categories/          # Gestión de categorías personales y accesos a grupos
     api/auth/[...all]/route.ts
     api/categories/suggest/route.ts   # Clasificador IA protegido
     manifest.ts

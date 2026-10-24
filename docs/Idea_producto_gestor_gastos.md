@@ -48,11 +48,13 @@ Hay **dos ámbitos de categorías** dentro del mismo gestor:
 - **Personal**: la crea y administra cada usuario; solo él la ve y la puede asignar a sus gastos privados.
 - **Compartida**: pertenece a **un grupo específico**; todos sus integrantes pueden crearla, verla, editarla y archivarla. Es elegible para gastos privados de sus miembros y para gastos compartidos **de ese grupo**, pero no para otros grupos.
 
-Cada categoría tiene **nombre** (por ejemplo, «Supermercado»), **descripción obligatoria** (qué gastos incluye/excluye, útil para la IA) y estado **activa/archivada**. Al crear una categoría, se elige su ámbito con una opción simple «Personal / Compartida» (por defecto, Personal). Si se elige Compartida, se indica **el grupo concreto**; si solo existe uno, puede preseleccionarse. El ámbito y, en categorías compartidas, el grupo propietario permanecen fijos: para cambiarlos, se crea otra categoría.
+Cada categoría tiene **nombre** (por ejemplo, «Supermercado»), **descripción obligatoria** (qué gastos incluye/excluye, útil para la IA) y estado **activa/archivada**. El ámbito y, en categorías compartidas, el grupo propietario permanecen fijos: para cambiarlos, se crea otra categoría.
 
 Ejemplos: «Videojuegos» puede ser personal; «Supermercado», «Restaurantes» y «Hogar» pueden ser categorías del grupo «Casa». No hace falta que el gasto sea compartido para usar «Supermercado»: una compra individual también puede clasificarse allí sin que otros integrantes vean esa compra.
 
-Cada ámbito evita nombres duplicados entre sus categorías activas, sin distinguir mayúsculas/minúsculas. Se pueden **renombrar, actualizar descripciones y archivar**; las categorías archivadas no pueden elegirse para nuevas asignaciones. Solo se puede eliminar definitivamente una categoría archivada y sin gastos asociados, después de una confirmación explícita. Una categoría usada por gastos debe conservarse; cuando exista ese módulo, eliminarla requerirá seleccionar una categoría de reemplazo elegible y reasignar sus gastos junto con la eliminación, en una única transacción. La pantalla de categorías permite distinguir categorías propias y **catálogos por grupo**, sin crear flujos de administración complejos. Nombres iguales en grupos distintos son categorías independientes. Se pueden sugerir unas pocas categorías de ejemplo editables, sin imponer una taxonomía global.
+Cada ámbito evita nombres duplicados entre sus categorías activas, sin distinguir mayúsculas/minúsculas. Se pueden **renombrar, actualizar descripciones y archivar**; las categorías archivadas no pueden elegirse para nuevas asignaciones. Solo se puede eliminar definitivamente una categoría archivada y sin referencias, después de una confirmación explícita. En el estado actual todavía no existe la tabla de gastos, por lo que no hay referencias que reasignar. Cuando exista ese módulo, eliminar una categoría referenciada requerirá elegir una categoría de reemplazo elegible y reasignar sus gastos junto con la eliminación, en una única transacción.
+
+La ruta `/categories` administra las categorías personales y muestra accesos compactos a los catálogos de los grupos del usuario. Cada acceso lleva a `/groups/[groupId]/categories`, que lista únicamente el catálogo del grupo correspondiente; el detalle del grupo ofrece el mismo acceso. No se cargan ni se muestran todas las tarjetas de categorías compartidas juntas en `/categories`. Los nombres iguales de grupo se distinguen en los accesos y cada ruta conserva el ID del grupo. El ámbito queda inferido por la pantalla: alta personal desde `/categories` y alta compartida desde el catálogo del grupo. Los formularios de alta y edición usan un Drawer en móvil y un Dialog en escritorio; editar no permite cambiar el propietario ni el grupo.
 
 ### 4.3 Categoría única en los gastos personales y compartidos
 
@@ -120,11 +122,13 @@ Los importes se calculan en centavos enteros. Cuando la división deja centavos 
 
 ## 6. Pantallas mínimas
 
-- Mis gastos: listado personal y acción visible «Agregar gasto».
+- Gastos: destino principal para el listado personal y la acción «Agregar gasto». Mientras ese módulo no exista, la ruta `/` mantiene un placeholder y no ofrece creación de gastos.
 - Nuevo/editar gasto: formulario breve, con switch de compartido y categoría sugerida por IA, siempre editable.
-- Compartidos: listado de grupos; dentro de cada uno, balance por participante y compras de ese grupo.
-- Categorías: listado y creación/edición/archivo de categorías **personales y por grupo** con nombre y descripción, desde «Cuenta»; selector del grupo cuando corresponda.
-- Cuenta / grupos: registrarse, iniciar sesión, crear múltiples grupos, ver membresías y generar/aceptar invitaciones de un solo uso para añadir participantes.
+- Grupos: listado de grupos; cada grupo tiene un detalle con integrantes e invitaciones. Los balances y gastos compartidos se incorporarán con el módulo de gastos.
+- Categorías: destino principal con categorías personales y catálogos separados por grupo; creación, edición y archivo con nombre y descripción, con selector de grupo cuando corresponda.
+- Cuenta: acceso discreto al cierre de sesión. Crear grupos, unirse e invitar integrantes vive en «Grupos».
+
+En móvil, la navegación principal persistente ofrece **Gastos, Grupos y Categorías** con ícono y etiqueta. En escritorio se adapta a una barra superior. La navegación considera el área segura inferior y deja espacio para el contenido y el teclado virtual.
 
 ## 7. Funcionalidades incluidas en el MVP
 

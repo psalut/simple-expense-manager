@@ -19,17 +19,17 @@ export default async function HomePage() {
       <section className="max-w-2xl space-y-5">
         <p className="text-sm text-muted-foreground">Hola, {session.user.name}</p>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Ordená tus categorías antes de empezar a registrar gastos.
+          Gastos
         </h1>
         <p className="max-w-xl leading-7 text-muted-foreground">
-          Creá categorías personales y, cuando te vincules con otra persona, un
-          catálogo compartido. Los gastos todavía no están disponibles.
+          El registro de gastos todavía no está disponible. Mientras tanto,
+          podés organizar tus categorías y grupos.
         </p>
         <Link
           href="/categories"
           className={buttonVariants({ className: "min-h-11" })}
         >
-          Administrar categorías
+          Ver categorías
         </Link>
       </section>
     </main>

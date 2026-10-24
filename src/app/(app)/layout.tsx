@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { AccountMenu } from "@/components/auth/account-menu";
+import { AppNavigation } from "@/components/navigation/app-navigation";
 
 export default async function AppLayout({
   children,
@@ -19,25 +20,30 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+      <a
+        href="#main-content"
+        className="sr-only z-[60] rounded-md bg-background px-4 py-3 text-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+      >
+        Saltar al contenido
+      </a>
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex min-h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="font-semibold tracking-tight">
-            <span className="sm:hidden">Gastos</span>
-            <span className="hidden sm:inline">Simple Expense Manager</span>
+            <span>Simple Expense Manager</span>
           </Link>
-          <nav aria-label="Navegación principal" className="flex items-center gap-3">
-            <Link
-              href="/categories"
-              className="min-h-11 content-center rounded-xl px-3 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
-            >
-              Categorías
-            </Link>
-            <LogoutButton />
-          </nav>
+          <div className="flex items-center gap-3">
+            <AppNavigation />
+            <AccountMenu
+              name={session.user.name}
+              email={session.user.email}
+            />
+          </div>
         </div>
       </header>
-      {children}
+      <div id="main-content" tabIndex={-1}>
+        {children}
+      </div>
     </div>
   );
 }

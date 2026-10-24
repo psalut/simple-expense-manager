@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canDeleteArchivedCategory,
   canManageCategory,
+  categoryBelongsToScope,
   isCategoryEligible,
   validateCategoryDraft,
 } from "./policy";
@@ -71,6 +72,23 @@ describe("category draft validation", () => {
     expect(
       validateCategoryDraft({ name: "Comida", description: "detalle", scope: "other" }),
     ).toMatchObject({ success: false });
+  });
+});
+
+describe("category catalog scope", () => {
+  const personal = { userId: "user-a", sharedSpaceId: null };
+  const casa = { userId: null, sharedSpaceId: "space-casa" };
+  const viaje = { userId: null, sharedSpaceId: "space-viaje" };
+
+  it("keeps personal categories in the personal catalog", () => {
+    expect(categoryBelongsToScope(personal, null)).toBe(true);
+    expect(categoryBelongsToScope(casa, null)).toBe(false);
+  });
+
+  it("matches shared categories to the exact group identifier", () => {
+    expect(categoryBelongsToScope(casa, "space-casa")).toBe(true);
+    expect(categoryBelongsToScope(viaje, "space-casa")).toBe(false);
+    expect(categoryBelongsToScope(personal, "space-casa")).toBe(false);
   });
 });
 
