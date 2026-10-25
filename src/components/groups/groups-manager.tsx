@@ -90,7 +90,7 @@ export function GroupsManager({
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight">Grupos</h1>
           <p className="text-sm text-muted-foreground">
-            Cada grupo tiene sus integrantes, invitaciones y categorías.
+            Cada grupo admite como máximo dos integrantes. Podés participar en varios.
           </p>
         </div>
         <div className="grid gap-2 sm:flex">
@@ -147,7 +147,7 @@ export function GroupsManager({
                         {getSharedSpaceDisplayName(space, spaces)}
                       </h3>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {space.members.length} {space.members.length === 1 ? "integrante" : "integrantes"}
+                        {space.members.length} de 2 integrantes
                       </p>
                     </div>
                     <ArrowUpRight

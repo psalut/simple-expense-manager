@@ -20,6 +20,7 @@ import {
 } from "@/app/(app)/categories/actions";
 import { CategoryEditorDialog } from "@/components/categories/category-editor-dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import type { CategoryView } from "@/lib/categories/types";
 import { callServerAction } from "@/lib/action-result";
 
@@ -27,8 +28,7 @@ type Props = {
   title: string;
   description?: string;
   categories: CategoryView[];
-  sharedSpaceId: string | null;
-  sharedSpaceName?: string;
+  replacementCategories: CategoryView[];
 };
 
 type Confirmation = {
@@ -40,8 +40,7 @@ export function CategoryCatalog({
   title,
   description,
   categories,
-  sharedSpaceId,
-  sharedSpaceName,
+  replacementCategories,
 }: Props) {
   const router = useRouter();
   const [editor, setEditor] = useState<{
@@ -52,6 +51,7 @@ export function CategoryCatalog({
   const [archived, setArchived] = useState<CategoryView[] | null>(null);
   const [archivesOpen, setArchivesOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const [replacementCategoryId, setReplacementCategoryId] = useState("");
   const [confirmationError, setConfirmationError] = useState("");
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
@@ -78,7 +78,7 @@ export function CategoryCatalog({
     setError("");
     startLoadArchives(async () => {
       const result = await callServerAction(() =>
-        getArchivedCategoriesAction(sharedSpaceId),
+        getArchivedCategoriesAction(),
       );
       if (!result.success) {
         setError(result.error);
@@ -91,6 +91,7 @@ export function CategoryCatalog({
 
   function requestConfirmation(action: Confirmation["action"], category: CategoryView) {
     setConfirmationError("");
+    setReplacementCategoryId("");
     setConfirmation({ action, category });
   }
 
@@ -104,8 +105,11 @@ export function CategoryCatalog({
       try {
         const result = await callServerAction(() =>
           current.action === "archive"
-            ? archiveCategoryAction(current.category.id, sharedSpaceId)
-            : deleteArchivedCategoryAction(current.category.id, sharedSpaceId),
+            ? archiveCategoryAction(current.category.id)
+            : deleteArchivedCategoryAction(
+                current.category.id,
+                replacementCategoryId,
+              ),
         );
 
         if (!result.success) {
@@ -139,7 +143,7 @@ export function CategoryCatalog({
     startMutation(async () => {
       try {
         const result = await callServerAction(() =>
-          restoreArchivedCategoryAction(category.id, sharedSpaceId),
+          restoreArchivedCategoryAction(category.id),
         );
         if (!result.success) {
           setError(result.error);
@@ -199,9 +203,7 @@ export function CategoryCatalog({
         </ul>
       ) : (
         <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-          {sharedSpaceId
-            ? "Todavía no hay categorías en este grupo."
-            : "Todavía no creaste categorías personales."}
+          El catálogo todavía está vacío. Creá la primera categoría para empezar.
         </p>
       )}
 
@@ -262,8 +264,6 @@ export function CategoryCatalog({
           if (!open) setEditor(null);
         }}
         category={editor?.category ?? null}
-        sharedSpaceId={sharedSpaceId}
-        sharedSpaceName={sharedSpaceName}
         onSaved={(message) => {
           setFeedback(message);
           setError("");
@@ -297,7 +297,7 @@ export function CategoryCatalog({
                   {confirmation
                     ? confirmation.action === "archive"
                       ? `“${confirmation.category.name}” dejará de estar disponible para nuevas asignaciones y se conservará para el historial.`
-                      : `“${confirmation.category.name}” se eliminará definitivamente del catálogo. Esta acción no se puede deshacer.`
+                      : `“${confirmation.category.name}” se eliminará. Si hay gastos asociados, se reasignarán a la categoría que elijas; sus importes y partes no cambian.`
                     : null}
                 </AlertDialog.Description>
               </div>
@@ -313,6 +313,34 @@ export function CategoryCatalog({
                 <X aria-hidden="true" />
               </Button>
             </div>
+
+            {confirmation?.action === "delete" && (
+              <div className="space-y-2">
+                <Label htmlFor="category-replacement">Categoría activa de reemplazo</Label>
+                <select
+                  id="category-replacement"
+                  value={replacementCategoryId}
+                  onChange={(event) => setReplacementCategoryId(event.target.value)}
+                  required
+                  className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/30 md:text-sm"
+                >
+                  <option value="">Elegí una categoría</option>
+                  {replacementCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  La reasignación y el borrado se guardan juntos. No se muestran datos del historial de gastos.
+                </p>
+                {replacementCategories.length === 0 && (
+                  <p className="text-sm text-destructive" role="status">
+                    No hay categorías activas elegibles. Creá o restaurá una categoría antes de eliminar esta.
+                  </p>
+                )}
+              </div>
+            )}
 
             {confirmationError && (
               <p className="text-sm text-destructive" role="alert">{confirmationError}</p>
@@ -333,7 +361,11 @@ export function CategoryCatalog({
                 variant="destructive"
                 className="min-h-11"
                 onClick={confirmAction}
-                disabled={isMutating}
+                disabled={
+                  isMutating ||
+                  (confirmation?.action === "delete" &&
+                    (!replacementCategoryId || replacementCategories.length === 0))
+                }
               >
                 {isMutating
                   ? confirmation?.action === "archive"
@@ -378,6 +410,11 @@ function CategoryCard({
     <article className="flex items-start gap-2 rounded-xl border border-border bg-card p-3">
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="size-3.5 shrink-0 rounded-full border border-foreground/15"
+            style={{ backgroundColor: category.color }}
+          />
           <h3 className="break-words font-medium">{category.name}</h3>
           {category.isArchived && (
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">

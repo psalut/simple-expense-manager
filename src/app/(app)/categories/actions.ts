@@ -7,8 +7,7 @@ import {
   CategoryError,
   createCategory,
   deleteArchivedCategory,
-  listCategoriesForSharedSpace,
-  listPersonalCategories,
+  listCategories,
   restoreArchivedCategory,
   updateCategory,
 } from "@/lib/server/categories";
@@ -20,17 +19,9 @@ import type { CategoryView } from "@/lib/categories/types";
 
 export async function createCategoryAction(
   input: unknown,
-  rawExpectedSharedSpaceId: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-  return runAction(async (userId) => {
-    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
-    const draft = asRecord(input);
-    const category = await createCategory(userId, {
-      name: draft.name,
-      description: draft.description,
-      scope: sharedSpaceId === null ? "personal" : "shared",
-      sharedSpaceId,
-    });
+  return runAction(async () => {
+    const category = await createCategory(input);
     revalidateCategoryViews();
     return { id: category.id };
   });
@@ -39,16 +30,9 @@ export async function createCategoryAction(
 export async function updateCategoryAction(
   categoryId: unknown,
   input: unknown,
-  rawExpectedSharedSpaceId: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-  return runAction(async (userId) => {
-    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
-    const category = await updateCategory(
-      userId,
-      categoryId,
-      input,
-      sharedSpaceId,
-    );
+  return runAction(async () => {
+    const category = await updateCategory(categoryId, input);
     revalidateCategoryViews();
     return { id: category.id };
   });
@@ -56,90 +40,58 @@ export async function updateCategoryAction(
 
 export async function archiveCategoryAction(
   categoryId: unknown,
-  rawExpectedSharedSpaceId: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-  return runAction(async (userId) => {
-    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
-    const category = await archiveCategory(
-      userId,
-      categoryId,
-      sharedSpaceId,
-    );
+  return runAction(async () => {
+    const category = await archiveCategory(categoryId);
     revalidateCategoryViews();
-    return { id: category.id };
+    return category;
   });
 }
 
 export async function deleteArchivedCategoryAction(
   categoryId: unknown,
-  rawExpectedSharedSpaceId: unknown,
+  replacementCategoryId: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-  return runAction(async (userId) => {
-    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
+  return runAction(async () => {
     const category = await deleteArchivedCategory(
-      userId,
       categoryId,
-      sharedSpaceId,
+      replacementCategoryId,
     );
     revalidateCategoryViews();
-    return { id: category.id };
+    return category;
   });
 }
 
 export async function restoreArchivedCategoryAction(
   categoryId: unknown,
-  rawExpectedSharedSpaceId: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-  return runAction(async (userId) => {
-    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
-    const category = await restoreArchivedCategory(
-      userId,
-      categoryId,
-      sharedSpaceId,
-    );
+  return runAction(async () => {
+    const category = await restoreArchivedCategory(categoryId);
     revalidateCategoryViews();
-    return { id: category.id };
+    return category;
   });
 }
 
-export async function getArchivedCategoriesAction(
-  rawExpectedSharedSpaceId: unknown,
-): Promise<ActionResult<CategoryView[]>> {
-  return runAction(async (userId) => {
-    const sharedSpaceId = readExpectedSharedSpaceId(rawExpectedSharedSpaceId);
-    const categories =
-      sharedSpaceId === null
-        ? await listPersonalCategories(userId, true)
-        : await listCategoriesForSharedSpace(userId, sharedSpaceId, true);
-    return categories.filter((category) => category.isArchived);
-  });
-}
-
-function readExpectedSharedSpaceId(value: unknown): string | null {
-  if (value === null) return null;
-  if (typeof value === "string" && value.trim() && value.length <= 100) {
-    return value.trim();
-  }
-  throw new CategoryError("Elegí un catálogo válido.");
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : {};
+export async function getArchivedCategoriesAction(): Promise<
+  ActionResult<CategoryView[]>
+> {
+  return runAction(async () =>
+    (await listCategories(true)).filter((category) => category.isArchived),
+  );
 }
 
 function revalidateCategoryViews() {
   revalidatePath("/categories");
-  revalidatePath("/groups/[id]/categories", "page");
+  revalidatePath("/");
+  revalidatePath("/groups/[id]", "page");
 }
 
 async function runAction<T>(
-  operation: (userId: string) => Promise<T>,
+  operation: () => Promise<T>,
 ): Promise<ActionResult<T>> {
   try {
-    const userId = await getAuthenticatedUserId();
-    return { success: true, data: await operation(userId) };
+    await getAuthenticatedUserId();
+    return { success: true, data: await operation() };
   } catch (error) {
     if (
       error instanceof AuthenticationRequiredError ||

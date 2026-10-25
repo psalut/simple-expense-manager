@@ -8,8 +8,6 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { user } from "./auth-schema";
-import { sharedSpaces } from "./shared-space-schema";
 
 export const categories = pgTable(
   "categories",
@@ -17,12 +15,7 @@ export const categories = pgTable(
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     description: text("description").notNull(),
-    userId: text("user_id").references(() => user.id, {
-      onDelete: "cascade",
-    }),
-    sharedSpaceId: text("shared_space_id").references(() => sharedSpaces.id, {
-      onDelete: "cascade",
-    }),
+    color: text("color").notNull(),
     isArchived: boolean("is_archived").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -32,29 +25,22 @@ export const categories = pgTable(
   },
   (table) => [
     check(
-      "categories_owner_xor_shared_space_check",
-      sql`(${table.userId} IS NOT NULL AND ${table.sharedSpaceId} IS NULL) OR (${table.userId} IS NULL AND ${table.sharedSpaceId} IS NOT NULL)`,
-    ),
-    check(
       "categories_name_valid_check",
-      sql`char_length(btrim(${table.name})) BETWEEN 1 AND 80`,
+      sql`char_length(trim(regexp_replace(${table.name}, '[[:space:]]+', ' ', 'g'))) BETWEEN 1 AND 60`,
     ),
     check(
       "categories_description_valid_check",
-      sql`char_length(btrim(${table.description})) BETWEEN 1 AND 500`,
+      sql`char_length(trim(regexp_replace(${table.description}, '[[:space:]]+', ' ', 'g'))) BETWEEN 1 AND 500`,
     ),
-    uniqueIndex("categories_user_active_name_unique")
-      .on(sql`lower(btrim(${table.name}))`, table.userId)
-      .where(sql`${table.isArchived} = false AND ${table.userId} IS NOT NULL`),
-    uniqueIndex("categories_shared_active_name_unique")
-      .on(sql`lower(btrim(${table.name}))`, table.sharedSpaceId)
-      .where(
-        sql`${table.isArchived} = false AND ${table.sharedSpaceId} IS NOT NULL`,
-      ),
-    index("categories_user_archived_idx").on(table.userId, table.isArchived),
-    index("categories_shared_space_archived_idx").on(
-      table.sharedSpaceId,
-      table.isArchived,
+    check(
+      "categories_color_valid_check",
+      sql`${table.color} ~ '^#[0-9A-Fa-f]{6}$'`,
     ),
+    uniqueIndex("categories_active_name_unique")
+      .on(
+        sql`lower(trim(regexp_replace(${table.name}, '[[:space:]]+', ' ', 'g')))`
+      )
+      .where(sql`${table.isArchived} = false`),
+    index("categories_archived_idx").on(table.isArchived, table.name),
   ],
 );

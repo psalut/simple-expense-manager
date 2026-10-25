@@ -1,12 +1,15 @@
-import type { CategoryScope } from "@/lib/categories/policy";
+export type CategorySuggestionOption = {
+  key: string;
+  id: string;
+  name: string;
+  description: string;
+};
 
 export type CategoryView = {
   id: string;
   name: string;
   description: string;
-  scope: CategoryScope;
-  sharedSpaceId: string | null;
-  sharedSpaceName: string | null;
+  color: string;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;

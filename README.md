@@ -1,36 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gestor simple de gastos
 
-## Getting Started
+App mobile-first para registrar gastos personales, compartir gastos 50/50 en grupos de dos y administrar un catálogo global de categorías.
 
-First, run the development server:
+## Desarrollo local
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Instalá dependencias con pnpm install.
+2. Copiá .env.example a .env.local y completá las credenciales de una base Neon de desarrollo y Better Auth.
+3. Aplicá la migración inicial con pnpm db:migrate.
+4. Cargá las categorías iniciales opcionales con pnpm db:seed.
+5. Ejecutá pnpm dev y abrí [http://localhost:3000](http://localhost:3000).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+El seed usa IDs estables y ON CONFLICT DO NOTHING: se puede repetir sin sobreescribir categorías existentes ni cambios del usuario. Las categorías son editables desde la app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Las sugerencias Jev son opcionales. Para habilitarlas, configurá `TYPESAFE_API_KEY` en el entorno de servidor. Sin esa clave, o ante errores del servicio, la app deja elegir la categoría manualmente. El umbral conservador por defecto es 0.8; se puede ajustar entre 0.5 y 1 con `CATEGORY_SUGGESTION_MIN_PROBABILITY`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Comandos
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- pnpm db:generate: genera una migración desde el esquema Drizzle actual.
+- pnpm db:migrate: aplica las migraciones al DATABASE_URL configurado; verificá que sea un entorno de desarrollo antes de ejecutarlo.
+- pnpm db:seed: carga categorías globales iniciales de forma idempotente.
+- pnpm lint: ejecuta ESLint.
+- pnpm exec tsc --noEmit: comprueba tipos.
+- pnpm test: ejecuta Vitest.
+- pnpm exec next build --webpack: compila usando Webpack.

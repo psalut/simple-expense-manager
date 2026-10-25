@@ -1,7 +1,10 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
+  check,
   index,
   pgTable,
+  primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -11,30 +14,32 @@ import { user } from "./auth-schema";
 export const sharedSpaces = pgTable("shared_spaces", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  memberCount: smallint("member_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-});
+}, (table) => [
+  check("shared_spaces_member_count_check", sql`${table.memberCount} BETWEEN 0 AND 2`),
+]);
 
 export const sharedSpaceMembers = pgTable(
   "shared_space_members",
   {
-    id: text("id").primaryKey(),
     sharedSpaceId: text("shared_space_id")
       .notNull()
       .references(() => sharedSpaces.id, { onDelete: "cascade" }),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("shared_space_members_space_user_unique").on(
-      table.sharedSpaceId,
-      table.userId,
-    ),
+    primaryKey({ columns: [table.sharedSpaceId, table.userId] }),
     index("shared_space_members_space_id_idx").on(table.sharedSpaceId),
   ],
 );

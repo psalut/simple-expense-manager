@@ -1,7 +1,10 @@
+export const MAX_SHARED_SPACE_MEMBERS = 2;
+
 export type InvitationAcceptanceState = {
   acceptedAt: Date | null;
   expiresAt: Date;
   userAlreadyMember: boolean;
+  memberCount: number;
 };
 
 export function invitationAcceptanceError(
@@ -13,6 +16,9 @@ export function invitationAcceptanceError(
   }
   if (state.userAlreadyMember) {
     return "Ya formás parte de este grupo.";
+  }
+  if (state.memberCount >= MAX_SHARED_SPACE_MEMBERS) {
+    return "Este grupo ya tiene dos integrantes.";
   }
   return null;
 }

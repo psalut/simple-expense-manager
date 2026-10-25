@@ -1,35 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { invitationAcceptanceError } from "./policy";
+import { invitationAcceptanceError, MAX_SHARED_SPACE_MEMBERS } from "./policy";
 
 const now = new Date("2026-10-23T12:00:00.000Z");
 const validInvitation = {
   acceptedAt: null,
   expiresAt: new Date("2026-10-30T12:00:00.000Z"),
   userAlreadyMember: false,
+  memberCount: 1,
 };
 
 describe("shared-space invitations", () => {
-  it("accepts a fresh invite into Viaje even when the user already belongs to Casa", () => {
+  it("accepts a valid invitation when the group has one member", () => {
     expect(invitationAcceptanceError(validInvitation, now)).toBeNull();
   });
 
-  it("allows invitations to add participants beyond the former two-member cap", () => {
-    // Acceptance state is scoped to the invite's group and has no member-count limit.
-    expect(invitationAcceptanceError(validInvitation, now)).toBeNull();
+  it("enforces a two-member limit", () => {
+    expect(MAX_SHARED_SPACE_MEMBERS).toBe(2);
+    expect(invitationAcceptanceError({ ...validInvitation, memberCount: 2 }, now)).toMatch(/dos integrantes/i);
   });
 
-  it("rejects a code after it was accepted or expired", () => {
-    expect(
-      invitationAcceptanceError({ ...validInvitation, acceptedAt: now }, now),
-    ).toMatch(/ya fue utilizada/i);
-    expect(
-      invitationAcceptanceError({ ...validInvitation, expiresAt: now }, now),
-    ).toMatch(/venció/i);
+  it("rejects invitations that are already accepted or expired", () => {
+    expect(invitationAcceptanceError({ ...validInvitation, acceptedAt: now }, now)).toMatch(/ya fue utilizada/i);
+    expect(invitationAcceptanceError({ ...validInvitation, expiresAt: now }, now)).toMatch(/venció/i);
   });
 
-  it("rejects a duplicate membership in the invitation's specific group", () => {
-    expect(
-      invitationAcceptanceError({ ...validInvitation, userAlreadyMember: true }, now),
-    ).toMatch(/ya formás parte/i);
+  it("rejects duplicate membership", () => {
+    expect(invitationAcceptanceError({ ...validInvitation, userAlreadyMember: true }, now)).toMatch(/ya formás parte/i);
   });
 });

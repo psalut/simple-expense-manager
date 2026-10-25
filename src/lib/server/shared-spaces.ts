@@ -9,7 +9,10 @@ import {
   sharedSpaceMembers,
   sharedSpaces,
 } from "@/db/shared-space-schema";
-import { invitationAcceptanceError } from "@/lib/shared-spaces/policy";
+import {
+  invitationAcceptanceError,
+  MAX_SHARED_SPACE_MEMBERS,
+} from "@/lib/shared-spaces/policy";
 import type { SharedSpaceOverview } from "@/lib/shared-spaces/types";
 
 const INVITATION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
@@ -38,7 +41,7 @@ export async function isUserMemberOfSharedSpace(
   sharedSpaceId: string,
 ): Promise<boolean> {
   const [membership] = await db
-    .select({ id: sharedSpaceMembers.id })
+    .select({ userId: sharedSpaceMembers.userId })
     .from(sharedSpaceMembers)
     .where(
       and(
@@ -115,9 +118,12 @@ export async function createSharedSpace(
 
   await db.transaction(async (tx) => {
     const sharedSpaceId = randomUUID();
-    await tx.insert(sharedSpaces).values({ id: sharedSpaceId, name });
+    await tx.insert(sharedSpaces).values({
+      id: sharedSpaceId,
+      name,
+      createdBy: userId,
+    });
     await tx.insert(sharedSpaceMembers).values({
-      id: randomUUID(),
       sharedSpaceId,
       userId,
     });
@@ -140,7 +146,10 @@ export async function createSharedSpaceInvitation(
 
   await db.transaction(async (tx) => {
     const [membership] = await tx
-      .select({ sharedSpaceId: sharedSpaceMembers.sharedSpaceId })
+      .select({
+        sharedSpaceId: sharedSpaceMembers.sharedSpaceId,
+        memberCount: sharedSpaces.memberCount,
+      })
       .from(sharedSpaceMembers)
       .innerJoin(
         sharedSpaces,
@@ -157,6 +166,9 @@ export async function createSharedSpaceInvitation(
 
     if (!membership) {
       throw new SharedSpaceError("No tenés acceso a ese grupo.");
+    }
+    if (membership.memberCount >= MAX_SHARED_SPACE_MEMBERS) {
+      throw new SharedSpaceError("Este grupo ya tiene dos integrantes.");
     }
 
     await tx.insert(sharedSpaceInvitations).values({
@@ -198,7 +210,7 @@ export async function acceptSharedSpaceInvitation(
       }
 
       const [space] = await tx
-        .select({ id: sharedSpaces.id })
+        .select({ id: sharedSpaces.id, memberCount: sharedSpaces.memberCount })
         .from(sharedSpaces)
         .where(eq(sharedSpaces.id, invitation.sharedSpaceId))
         .for("update")
@@ -222,6 +234,7 @@ export async function acceptSharedSpaceInvitation(
           acceptedAt: invitation.acceptedAt,
           expiresAt: invitation.expiresAt,
           userAlreadyMember: existingMembership !== undefined,
+          memberCount: space.memberCount,
         },
         new Date(),
       );
@@ -230,7 +243,6 @@ export async function acceptSharedSpaceInvitation(
       }
 
       await tx.insert(sharedSpaceMembers).values({
-        id: randomUUID(),
         sharedSpaceId: invitation.sharedSpaceId,
         userId,
       });
@@ -241,6 +253,9 @@ export async function acceptSharedSpaceInvitation(
     });
   } catch (error) {
     if (error instanceof SharedSpaceError) throw error;
+    if (isMemberLimitViolation(error)) {
+      throw new SharedSpaceError("Este grupo ya tiene dos integrantes.");
+    }
     if (isDuplicateMembershipViolation(error)) {
       throw new SharedSpaceError("Ya formás parte de este grupo.");
     }
@@ -259,8 +274,28 @@ function isDuplicateMembershipViolation(error: unknown): boolean {
     };
     if (
       record.code === "23505" &&
-      (record.constraint === "shared_space_members_space_user_unique" ||
-        String(record.detail ?? "").includes("shared_space_members_space_user_unique"))
+      (record.constraint === "shared_space_members_pkey" ||
+        record.constraint === "shared_space_members_shared_space_id_user_id_pk" ||
+        String(record.detail ?? "").includes("shared_space_members_pkey"))
+    ) {
+      return true;
+    }
+    current = record.cause;
+  }
+  return false;
+}
+
+function isMemberLimitViolation(error: unknown): boolean {
+  let current: unknown = error;
+  while (typeof current === "object" && current !== null) {
+    const record = current as {
+      code?: unknown;
+      constraint?: unknown;
+      cause?: unknown;
+    };
+    if (
+      record.code === "23514" &&
+      record.constraint === "shared_space_member_limit"
     ) {
       return true;
     }

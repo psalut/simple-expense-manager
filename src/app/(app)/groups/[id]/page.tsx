@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { GroupDetail } from "@/components/groups/group-detail";
+import { currentDateInBuenosAires } from "@/lib/expenses/format";
+import { getGroupExpenseOverview } from "@/lib/server/expenses";
+import { listCategories } from "@/lib/server/categories";
 import { getSharedSpaceDisplayName } from "@/lib/shared-spaces/display-name";
 import { getAuthenticatedUserId } from "@/lib/server/authenticated-user";
 import { getSharedSpacesForUser } from "@/lib/server/shared-spaces";
@@ -20,6 +23,16 @@ export default async function GroupDetailPage({
 
   if (!space) notFound();
 
+  const [overview, categories] = await Promise.all([
+    getGroupExpenseOverview(userId, id),
+    listCategories(),
+  ]);
+  const groups = spaces.map((item) => ({
+    id: item.id,
+    name: getSharedSpaceDisplayName(item, spaces),
+    members: item.members,
+  }));
+
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 sm:px-6 sm:py-10">
       <Link
@@ -32,6 +45,12 @@ export default async function GroupDetailPage({
       <GroupDetail
         space={space}
         displayName={getSharedSpaceDisplayName(space, spaces)}
+        currentUserId={userId}
+        groups={groups}
+        categories={categories}
+        expenses={overview.expenses}
+        balances={overview.balances}
+        today={currentDateInBuenosAires()}
       />
     </main>
   );

@@ -1,47 +1,46 @@
-export type CategoryScope = "personal" | "shared";
-
 export type CategoryDraft = {
   name: string;
   description: string;
-  scope: CategoryScope;
-  sharedSpaceId: string | null;
+  color: string;
 };
 
 export type CategoryDraftResult =
   | { success: true; data: CategoryDraft }
   | { success: false; error: string };
 
-export type CategoryOwnership = {
-  userId: string | null;
-  sharedSpaceId: string | null;
-};
-
-export type CategoryEligibility = CategoryOwnership & {
+export type CategoryRecord = {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
   isArchived: boolean;
 };
 
-export type CategoryEligibilityContext =
-  | { shared: false }
-  | { shared: true; sharedSpaceId: string };
+export function normalizeCategoryName(value: string): string {
+  return value.trim().replace(/\s+/gu, " ");
+}
+
+export function normalizeCategoryColor(value: string): string {
+  return value.toUpperCase();
+}
 
 export function validateCategoryDraft(value: unknown): CategoryDraftResult {
-  if (typeof value !== "object" || value === null) {
-    return { success: false, error: "Completá el nombre y la descripción." };
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return { success: false, error: "Completá nombre, descripción y color." };
   }
 
   const input = value as Record<string, unknown>;
-  const name = typeof input.name === "string" ? input.name.trim() : "";
+  const name =
+    typeof input.name === "string" ? normalizeCategoryName(input.name) : "";
   const description =
     typeof input.description === "string" ? input.description.trim() : "";
-  const scope = input.scope === undefined ? "personal" : input.scope;
-  const sharedSpaceId =
-    typeof input.sharedSpaceId === "string" ? input.sharedSpaceId.trim() : null;
+  const rawColor = typeof input.color === "string" ? input.color.trim() : "";
 
   if (!name) {
     return { success: false, error: "El nombre es obligatorio." };
   }
-  if (name.length > 80) {
-    return { success: false, error: "El nombre no puede superar 80 caracteres." };
+  if (name.length > 60) {
+    return { success: false, error: "El nombre no puede superar 60 caracteres." };
   }
   if (!description) {
     return { success: false, error: "La descripción es obligatoria." };
@@ -52,16 +51,10 @@ export function validateCategoryDraft(value: unknown): CategoryDraftResult {
       error: "La descripción no puede superar 500 caracteres.",
     };
   }
-  if (scope !== "personal" && scope !== "shared") {
-    return { success: false, error: "Elegí un ámbito válido." };
-  }
-  if (scope === "shared" && (!sharedSpaceId || sharedSpaceId.length > 100)) {
-    return { success: false, error: "Elegí el grupo de esta categoría." };
-  }
-  if (scope === "personal" && sharedSpaceId !== null) {
+  if (!/^#[\da-f]{6}$/i.test(rawColor)) {
     return {
       success: false,
-      error: "Las categorías personales no pertenecen a un grupo.",
+      error: "Elegí un color hexadecimal válido, por ejemplo #2F6F66.",
     };
   }
 
@@ -70,73 +63,20 @@ export function validateCategoryDraft(value: unknown): CategoryDraftResult {
     data: {
       name,
       description,
-      scope,
-      sharedSpaceId: scope === "shared" ? sharedSpaceId : null,
+      color: normalizeCategoryColor(rawColor),
     },
   };
 }
 
-export function canManageCategory(
-  category: CategoryOwnership,
-  userId: string,
-  memberSpaceIds: readonly string[],
-): boolean {
-  const hasUserOwner = category.userId !== null;
-  const hasSharedSpace = category.sharedSpaceId !== null;
-
-  if (hasUserOwner === hasSharedSpace) return false;
-  if (category.userId === userId) return true;
-
-  return (
-    category.sharedSpaceId !== null &&
-    memberSpaceIds.includes(category.sharedSpaceId)
-  );
-}
-
-export function categoryBelongsToScope(
-  category: CategoryOwnership,
-  expectedSharedSpaceId: string | null,
-): boolean {
-  if (expectedSharedSpaceId === null) {
-    return category.userId !== null && category.sharedSpaceId === null;
-  }
-
-  return category.userId === null && category.sharedSpaceId === expectedSharedSpaceId;
-}
-
 export function canDeleteArchivedCategory(
-  category: CategoryOwnership & { isArchived: boolean },
-  userId: string,
-  memberSpaceIds: readonly string[],
+  category: Pick<CategoryRecord, "isArchived">,
 ): boolean {
-  return (
-    category.isArchived &&
-    canManageCategory(category, userId, memberSpaceIds)
-  );
+  return category.isArchived;
 }
 
-export function isCategoryEligible(
-  category: CategoryEligibility,
-  userId: string,
-  memberSpaceIds: readonly string[],
-  context: CategoryEligibilityContext,
+export function isCategoryAssignable(
+  category: Pick<CategoryRecord, "id" | "isArchived">,
+  currentCategoryId?: string,
 ): boolean {
-  if (category.isArchived) return false;
-
-  const hasUserOwner = category.userId !== null;
-  const hasSharedSpace = category.sharedSpaceId !== null;
-  if (hasUserOwner === hasSharedSpace) return false;
-
-  if (context.shared) {
-    return (
-      memberSpaceIds.includes(context.sharedSpaceId) &&
-      category.sharedSpaceId === context.sharedSpaceId
-    );
-  }
-
-  return (
-    category.userId === userId ||
-    (category.sharedSpaceId !== null &&
-      memberSpaceIds.includes(category.sharedSpaceId))
-  );
+  return !category.isArchived || category.id === currentCategoryId;
 }

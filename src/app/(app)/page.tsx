@@ -1,37 +1,48 @@
+import { ExpensesList } from "@/components/expenses/expenses-list";
+import { listCategories } from "@/lib/server/categories";
+import { getAuthenticatedUserId } from "@/lib/server/authenticated-user";
+import { listPersonalExpenses } from "@/lib/server/expenses";
+import { getSharedSpacesForUser } from "@/lib/server/shared-spaces";
+import { getSharedSpaceDisplayName } from "@/lib/shared-spaces/display-name";
+import {
+  currentDateInBuenosAires,
+  normalizeExpenseMonth,
+  shiftMonth,
+} from "@/lib/expenses/format";
 
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-
-export default async function HomePage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect("/login");
-  }
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string | string[] }>;
+}) {
+  const [userId, params] = await Promise.all([
+    getAuthenticatedUserId(),
+    searchParams,
+  ]);
+  const today = currentDateInBuenosAires();
+  const month = normalizeExpenseMonth(params.month, today);
+  const nextMonth = shiftMonth(month, 1);
+  const [expenses, categories, spaces] = await Promise.all([
+    listPersonalExpenses(userId, month + "-01", nextMonth + "-01"),
+    listCategories(),
+    getSharedSpacesForUser(userId),
+  ]);
+  const groups = spaces.map((space) => ({
+    id: space.id,
+    name: getSharedSpaceDisplayName(space, spaces),
+    members: space.members,
+  }));
 
   return (
-    <main className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-5xl flex-col justify-center px-4 py-10 sm:px-6">
-      <section className="max-w-2xl space-y-5">
-        <p className="text-sm text-muted-foreground">Hola, {session.user.name}</p>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Gastos
-        </h1>
-        <p className="max-w-xl leading-7 text-muted-foreground">
-          El registro de gastos todavía no está disponible. Mientras tanto,
-          podés organizar tus categorías y grupos.
-        </p>
-        <Link
-          href="/categories"
-          className={buttonVariants({ className: "min-h-11" })}
-        >
-          Ver categorías
-        </Link>
-      </section>
+    <main className="mx-auto w-full max-w-3xl px-4 pb-28 pt-8 sm:px-6 sm:pb-12 sm:pt-10">
+      <ExpensesList
+        expenses={expenses}
+        categories={categories}
+        groups={groups}
+        currentUserId={userId}
+        month={month}
+        today={today}
+      />
     </main>
   );
 }
