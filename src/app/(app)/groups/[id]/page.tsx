@@ -6,7 +6,7 @@ import { currentDateInBuenosAires } from "@/lib/expenses/format";
 import { getGroupExpenseOverview } from "@/lib/server/expenses";
 import { listCategories } from "@/lib/server/categories";
 import { getSharedSpaceDisplayName } from "@/lib/shared-spaces/display-name";
-import { getAuthenticatedUserId } from "@/lib/server/authenticated-user";
+import { getAuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 import { getSharedSpacesForUser } from "@/lib/server/shared-spaces";
 
 export default async function GroupDetailPage({
@@ -14,10 +14,11 @@ export default async function GroupDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [{ id }, userId] = await Promise.all([
+  const [{ id }, user] = await Promise.all([
     params,
-    getAuthenticatedUserId(),
+    getAuthenticatedUserProfile(),
   ]);
+  const userId = user.id;
   const spaces = await getSharedSpacesForUser(userId);
   const space = spaces.find((candidate) => candidate.id === id);
 
@@ -51,6 +52,7 @@ export default async function GroupDetailPage({
         expenses={overview.expenses}
         balances={overview.balances}
         today={currentDateInBuenosAires()}
+        account={user}
       />
     </main>
   );

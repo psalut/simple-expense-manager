@@ -1,26 +1,28 @@
 "use client";
 
 import { CategoryCatalog } from "@/components/categories/category-catalog";
+import { SectionHeading } from "@/components/navigation/section-heading";
 import type { CategoryView } from "@/lib/categories/types";
+import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 
 type Props = {
   categories: CategoryView[];
   replacementCategories: CategoryView[];
+  account: Pick<AuthenticatedUserProfile, "name" | "email">;
 };
 
 export function CategoriesManager({
   categories,
   replacementCategories,
+  account,
 }: Props) {
   return (
-    <div className="space-y-7">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Categorías</h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          Un catálogo compartido por todas las cuentas. Los cambios se reflejan
-          en los gastos existentes sin mostrar a quién pertenecen.
-        </p>
-      </header>
+    <div className="space-y-6">
+      <SectionHeading
+        title="Categorías"
+        description="Un catálogo global para todos tus gastos."
+        account={account}
+      />
 
       <CategoryCatalog
         title="Catálogo global"

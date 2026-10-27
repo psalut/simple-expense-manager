@@ -27,13 +27,13 @@ export default async function AppLayout({
       >
         Saltar al contenido
       </a>
-      <header className="border-b border-border bg-card">
+      <header className="hidden border-b border-border bg-card md:block">
         <div className="mx-auto flex min-h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="font-semibold tracking-tight">
             <span>Simple Expense Manager</span>
           </Link>
           <div className="flex items-center gap-3">
-            <AppNavigation />
+            <AppNavigation mode="desktop" />
             <AccountMenu
               name={session.user.name}
               email={session.user.email}
@@ -41,6 +41,7 @@ export default async function AppLayout({
           </div>
         </div>
       </header>
+      <AppNavigation mode="mobile" />
       <div id="main-content" tabIndex={-1}>
         {children}
       </div>

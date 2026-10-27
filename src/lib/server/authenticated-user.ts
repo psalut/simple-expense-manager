@@ -10,8 +10,23 @@ export class AuthenticationRequiredError extends Error {
   }
 }
 
-export async function getAuthenticatedUserId(): Promise<string> {
+export type AuthenticatedUserProfile = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export async function getAuthenticatedUserProfile(): Promise<AuthenticatedUserProfile> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) throw new AuthenticationRequiredError();
-  return session.user.id;
+
+  return {
+    id: session.user.id,
+    name: session.user.name ?? "",
+    email: session.user.email ?? "",
+  };
+}
+
+export async function getAuthenticatedUserId(): Promise<string> {
+  return (await getAuthenticatedUserProfile()).id;
 }

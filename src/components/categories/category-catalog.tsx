@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { Drawer } from "@base-ui/react/drawer";
+import { Menu } from "@base-ui/react/menu";
 import {
   Archive,
   MoreHorizontal,
@@ -21,6 +23,7 @@ import {
 import { CategoryEditorDialog } from "@/components/categories/category-editor-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { SelectField } from "@/components/ui/select";
 import type { CategoryView } from "@/lib/categories/types";
 import { callServerAction } from "@/lib/action-result";
 
@@ -43,6 +46,7 @@ export function CategoryCatalog({
   replacementCategories,
 }: Props) {
   const router = useRouter();
+  const isMobile = useMobileViewport();
   const [editor, setEditor] = useState<{
     category: CategoryView | null;
     instance: number;
@@ -162,6 +166,82 @@ export function CategoryCatalog({
   }
 
   const archivedCount = archived?.length;
+  const confirmationTitle =
+    confirmation?.action === "archive"
+      ? "¿Archivar categoría?"
+      : confirmation
+        ? "¿Eliminar categoría?"
+        : "Confirmación de categoría";
+  const confirmationDescription = confirmation
+    ? confirmation.action === "archive"
+      ? "“" +
+        confirmation.category.name +
+        "” dejará de estar disponible para nuevas asignaciones y se conservará para el historial."
+      : "“" +
+        confirmation.category.name +
+        "” se eliminará. Si hay gastos asociados, se reasignarán a la categoría que elijas; sus importes y partes no cambian."
+    : "";
+  const confirmationBody = (
+    <>
+      {confirmation?.action === "delete" && (
+        <div className="space-y-2">
+          <Label htmlFor="category-replacement">Categoría activa de reemplazo</Label>
+          <SelectField
+            id="category-replacement"
+            value={replacementCategoryId}
+            onValueChange={setReplacementCategoryId}
+            options={replacementCategories.map((category) => ({
+              value: category.id,
+              label: category.name,
+            }))}
+            placeholder="Elegí una categoría"
+            required
+          />
+          <p className="text-xs leading-5 text-muted-foreground">
+            La reasignación y el borrado se guardan juntos. No se muestran datos del historial de gastos.
+          </p>
+          {replacementCategories.length === 0 && (
+            <p className="text-sm text-destructive" role="status">
+              No hay categorías activas elegibles. Creá o restaurá una categoría antes de eliminar esta.
+            </p>
+          )}
+        </div>
+      )}
+      {confirmationError && (
+        <p className="text-sm text-destructive" role="alert">{confirmationError}</p>
+      )}
+      <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={() => setConfirmation(null)}
+          disabled={isMutating}
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="button"
+          variant="destructive"
+          className="min-h-11"
+          onClick={confirmAction}
+          disabled={
+            isMutating ||
+            (confirmation?.action === "delete" &&
+              (!replacementCategoryId || replacementCategories.length === 0))
+          }
+        >
+          {isMutating
+            ? confirmation?.action === "archive"
+              ? "Archivando…"
+              : "Eliminando…"
+            : confirmation?.action === "archive"
+              ? "Archivar"
+              : "Eliminar definitivamente"}
+        </Button>
+      </div>
+    </>
+  );
 
   return (
     <section aria-labelledby="category-catalog-title" className="space-y-4">
@@ -171,7 +251,7 @@ export function CategoryCatalog({
             {title}
           </h2>
           {description && (
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+            <p className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>
           )}
         </div>
         <Button
@@ -189,7 +269,7 @@ export function CategoryCatalog({
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
 
       {categories.length > 0 ? (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-border border-y border-border">
           {categories.map((category) => (
             <li key={category.id}>
               <CategoryCard
@@ -240,7 +320,7 @@ export function CategoryCatalog({
                 No hay categorías archivadas.
               </p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="divide-y divide-border border-y border-border">
                 {archived.map((category) => (
                   <li key={category.id}>
                     <CategoryCard
@@ -272,113 +352,83 @@ export function CategoryCatalog({
         }}
       />
 
-      <AlertDialog.Root
-        open={confirmation !== null}
-        onOpenChange={(open) => {
-          if (!open && !isMutating) {
-            setConfirmation(null);
-            setConfirmationError("");
-          }
-        }}
-      >
-        <AlertDialog.Portal>
-          <AlertDialog.Backdrop className="fixed inset-0 z-[60] bg-black/40 transition-opacity data-ending-style:opacity-0 data-starting-style:opacity-0" />
-          <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-[61] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-xl outline-none sm:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <AlertDialog.Title className="text-lg font-semibold">
-                  {confirmation?.action === "archive"
-                    ? "¿Archivar categoría?"
-                    : confirmation
-                      ? "¿Eliminar categoría?"
-                      : "Confirmación de categoría"}
-                </AlertDialog.Title>
-                <AlertDialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {confirmation
-                    ? confirmation.action === "archive"
-                      ? `“${confirmation.category.name}” dejará de estar disponible para nuevas asignaciones y se conservará para el historial.`
-                      : `“${confirmation.category.name}” se eliminará. Si hay gastos asociados, se reasignarán a la categoría que elijas; sus importes y partes no cambian.`
-                    : null}
-                </AlertDialog.Description>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-11 shrink-0"
-                aria-label="Cerrar confirmación"
-                onClick={() => setConfirmation(null)}
-                disabled={isMutating}
-              >
-                <X aria-hidden="true" />
-              </Button>
-            </div>
-
-            {confirmation?.action === "delete" && (
-              <div className="space-y-2">
-                <Label htmlFor="category-replacement">Categoría activa de reemplazo</Label>
-                <select
-                  id="category-replacement"
-                  value={replacementCategoryId}
-                  onChange={(event) => setReplacementCategoryId(event.target.value)}
-                  required
-                  className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/30 md:text-sm"
+      {isMobile ? (
+        <Drawer.Root
+          open={confirmation !== null}
+          onOpenChange={(open) => {
+            if (!open && !isMutating) {
+              setConfirmation(null);
+              setConfirmationError("");
+            }
+          }}
+        >
+          <Drawer.Portal>
+            <Drawer.Backdrop className="fixed inset-0 z-[60] bg-black/40" />
+            <Drawer.Viewport className="fixed inset-0 z-[60] flex items-end justify-center">
+              <Drawer.Popup className="w-full max-w-xl overflow-y-auto overscroll-contain rounded-t-3xl border border-border bg-card text-card-foreground shadow-xl outline-none">
+                <Drawer.Content className="mx-auto max-h-[min(85dvh,36rem)] space-y-4 overflow-y-auto overscroll-contain p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Drawer.Title className="text-lg font-semibold">{confirmationTitle}</Drawer.Title>
+                      <Drawer.Description className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {confirmationDescription}
+                      </Drawer.Description>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-11 shrink-0"
+                      aria-label="Cerrar confirmación"
+                      onClick={() => setConfirmation(null)}
+                      disabled={isMutating}
+                    >
+                      <X aria-hidden="true" />
+                    </Button>
+                  </div>
+                  {confirmationBody}
+                </Drawer.Content>
+              </Drawer.Popup>
+            </Drawer.Viewport>
+          </Drawer.Portal>
+        </Drawer.Root>
+      ) : (
+        <AlertDialog.Root
+          open={confirmation !== null}
+          onOpenChange={(open) => {
+            if (!open && !isMutating) {
+              setConfirmation(null);
+              setConfirmationError("");
+            }
+          }}
+        >
+          <AlertDialog.Portal>
+            <AlertDialog.Backdrop className="fixed inset-0 z-[60] bg-black/40" />
+            <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-[61] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-xl outline-none sm:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <AlertDialog.Title className="text-lg font-semibold">{confirmationTitle}</AlertDialog.Title>
+                  <AlertDialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {confirmationDescription}
+                  </AlertDialog.Description>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-11 shrink-0"
+                  aria-label="Cerrar confirmación"
+                  onClick={() => setConfirmation(null)}
+                  disabled={isMutating}
                 >
-                  <option value="">Elegí una categoría</option>
-                  {replacementCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  La reasignación y el borrado se guardan juntos. No se muestran datos del historial de gastos.
-                </p>
-                {replacementCategories.length === 0 && (
-                  <p className="text-sm text-destructive" role="status">
-                    No hay categorías activas elegibles. Creá o restaurá una categoría antes de eliminar esta.
-                  </p>
-                )}
+                  <X aria-hidden="true" />
+                </Button>
               </div>
-            )}
-
-            {confirmationError && (
-              <p className="text-sm text-destructive" role="alert">{confirmationError}</p>
-            )}
-
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11"
-                onClick={() => setConfirmation(null)}
-                disabled={isMutating}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                className="min-h-11"
-                onClick={confirmAction}
-                disabled={
-                  isMutating ||
-                  (confirmation?.action === "delete" &&
-                    (!replacementCategoryId || replacementCategories.length === 0))
-                }
-              >
-                {isMutating
-                  ? confirmation?.action === "archive"
-                    ? "Archivando…"
-                    : "Eliminando…"
-                  : confirmation?.action === "archive"
-                    ? "Archivar"
-                    : "Eliminar definitivamente"}
-              </Button>
-            </div>
-          </AlertDialog.Popup>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
+              {confirmationBody}
+            </AlertDialog.Popup>
+          </AlertDialog.Portal>
+        </AlertDialog.Root>
+      )}
     </section>
   );
 }
@@ -400,15 +450,9 @@ function CategoryCard({
   onRestore,
   onDelete,
 }: CategoryCardProps) {
-  const actionsRef = useRef<HTMLDetailsElement>(null);
-
-  function closeMenu() {
-    actionsRef.current?.removeAttribute("open");
-  }
-
   return (
-    <article className="flex items-start gap-2 rounded-xl border border-border bg-card p-3">
-      <div className="min-w-0 flex-1 space-y-1">
+    <article className="flex items-start gap-3 py-3">
+      <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex flex-wrap items-center gap-2">
           <span
             aria-hidden="true"
@@ -425,76 +469,60 @@ function CategoryCard({
         <ExpandableDescription description={category.description} name={category.name} />
       </div>
 
-      <details ref={actionsRef} className="relative shrink-0">
-        <summary
-          aria-label={`Acciones de ${category.name}`}
-          className="grid size-11 cursor-pointer list-none place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 [&::-webkit-details-marker]:hidden"
+      <Menu.Root>
+        <Menu.Trigger
+          aria-label={"Acciones de " + category.name}
+          className="grid size-11 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
         >
           <MoreHorizontal aria-hidden="true" />
-        </summary>
-        <div className="absolute right-0 top-full z-20 mt-1 min-w-52 rounded-xl border border-border bg-popover p-1 shadow-lg">
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Positioner side="top" align="end" sideOffset={6} collisionPadding={12} className="z-[70]">
+            <Menu.Popup className="min-w-52 rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-lg outline-none">
           {onEdit && (
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 w-full justify-start"
+            <Menu.Item
+              className="flex min-h-11 cursor-default items-center gap-2 rounded-lg px-3 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:opacity-50"
               disabled={disabled}
-              onClick={() => {
-                closeMenu();
-                onEdit();
-              }}
+              onClick={onEdit}
             >
               <Pencil aria-hidden="true" />
               Editar
-            </Button>
+            </Menu.Item>
           )}
           {onArchive && (
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 w-full justify-start text-destructive hover:text-destructive"
+            <Menu.Item
+              className="flex min-h-11 cursor-default items-center gap-2 rounded-lg px-3 text-sm text-destructive outline-none data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive data-[disabled]:opacity-50"
               disabled={disabled}
-              onClick={() => {
-                closeMenu();
-                onArchive();
-              }}
+              onClick={onArchive}
             >
               <Archive aria-hidden="true" />
               Archivar
-            </Button>
+            </Menu.Item>
           )}
           {onRestore && (
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 w-full justify-start"
+            <Menu.Item
+              className="flex min-h-11 cursor-default items-center gap-2 rounded-lg px-3 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:opacity-50"
               disabled={disabled}
-              onClick={() => {
-                closeMenu();
-                onRestore();
-              }}
+              onClick={onRestore}
             >
               <RotateCcw aria-hidden="true" />
               Restaurar
-            </Button>
+            </Menu.Item>
           )}
           {onDelete && (
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 w-full justify-start text-destructive hover:text-destructive"
+            <Menu.Item
+              className="flex min-h-11 cursor-default items-center gap-2 rounded-lg px-3 text-sm text-destructive outline-none data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive data-[disabled]:opacity-50"
               disabled={disabled}
-              onClick={() => {
-                closeMenu();
-                onDelete();
-              }}
+              onClick={onDelete}
             >
               <Trash2 aria-hidden="true" />
               Eliminar definitivamente
-            </Button>
+            </Menu.Item>
           )}
-        </div>
-      </details>
+            </Menu.Popup>
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>
     </article>
   );
 }
@@ -552,3 +580,17 @@ const twoLineClampStyle = {
   WebkitLineClamp: 2,
   overflow: "hidden",
 };
+
+function useMobileViewport() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
+}

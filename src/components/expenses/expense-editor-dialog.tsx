@@ -12,10 +12,13 @@ import {
   updateExpenseAction,
 } from "@/app/(app)/expenses/actions";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SelectField } from "@/components/ui/select";
 import type { CategoryView } from "@/lib/categories/types";
-import { splitAmountCents } from "@/lib/expenses/policy";
+import { amountInputToCents, splitAmountCents } from "@/lib/expenses/policy";
 import { shouldApplyAutomaticSuggestion } from "@/lib/categories/suggestion-policy";
 import { formatArs } from "@/lib/expenses/format";
 import type {
@@ -23,6 +26,10 @@ import type {
   PersonalExpenseView,
 } from "@/lib/server/expenses";
 import { callServerAction } from "@/lib/action-result";
+import { cn } from "@/lib/utils";
+
+const expenseControlClassName =
+  "h-11 min-h-11 rounded-xl border-input bg-input/50 px-3 py-2 text-base font-normal text-foreground placeholder:text-muted-foreground md:text-base";
 
 export type ExpenseGroupOption = {
   id: string;
@@ -79,9 +86,12 @@ export function ExpenseEditorDialog({
   const [amount, setAmount] = useState(
     initialExpense ? centsToInput(initialExpense.amountCents) : "",
   );
+  const [amountFocused, setAmountFocused] = useState(false);
   const [expenseDate, setExpenseDate] = useState(
     initialExpense?.expenseDate ?? today,
   );
+  const [mobileDateSelectionOpen, setMobileDateSelectionOpen] = useState(false);
+  const [draftExpenseDate, setDraftExpenseDate] = useState(expenseDate);
   const [shared, setShared] = useState(initialShared);
   const [groupId, setGroupId] = useState(initialGroupId);
   const [categoryId, setCategoryId] = useState(initialExpense?.categoryId ?? "");
@@ -94,6 +104,27 @@ export function ExpenseEditorDialog({
   const suggestionRequest = useRef(0);
   const suggestionController = useRef<AbortController | null>(null);
   const submitting = useRef(false);
+  const dateTriggerRef = useRef<HTMLButtonElement>(null);
+  const dateHeadingRef = useRef<HTMLHeadingElement>(null);
+  const hadMobileDateSelectionOpen = useRef(false);
+
+  useEffect(() => {
+    if (mobileDateSelectionOpen) {
+      const frame = window.requestAnimationFrame(() => {
+        dateHeadingRef.current?.focus();
+      });
+      hadMobileDateSelectionOpen.current = true;
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    if (hadMobileDateSelectionOpen.current && open) {
+      const frame = window.requestAnimationFrame(() => {
+        dateTriggerRef.current?.focus();
+      });
+      hadMobileDateSelectionOpen.current = false;
+      return () => window.cancelAnimationFrame(frame);
+    }
+  }, [mobileDateSelectionOpen, open]);
 
   const historicalCategory: CategoryView | null = initialExpense
     ? {
@@ -117,6 +148,11 @@ export function ExpenseEditorDialog({
       ? [historicalCategory]
       : []),
   ];
+  const categoryOptions = categoriesForSelect.map((category) => ({
+    value: category.id,
+    label: category.name + (category.isArchived ? " · archivada (solo historial)" : ""),
+    color: category.color,
+  }));
   const selectedGroup = groups.find((group) => group.id === groupId) ?? null;
   const canShare = completeGroups.length > 0;
 
@@ -224,6 +260,17 @@ export function ExpenseEditorDialog({
     setSuggestionStatus("idle");
   }
 
+  function cancelMobileDateSelection() {
+    setDraftExpenseDate(expenseDate);
+    setMobileDateSelectionOpen(false);
+  }
+
+  function applyMobileDateSelection() {
+    if (!draftExpenseDate) return;
+    setExpenseDate(draftExpenseDate);
+    setMobileDateSelectionOpen(false);
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting.current || readOnly) return;
@@ -246,6 +293,11 @@ export function ExpenseEditorDialog({
     }
     if (!categoryId) {
       setError("Elegí una categoría para guardar el gasto.");
+      submitting.current = false;
+      return;
+    }
+    if (!expenseDate) {
+      setError("Elegí una fecha para guardar el gasto.");
       submitting.current = false;
       return;
     }
@@ -304,6 +356,32 @@ export function ExpenseEditorDialog({
     });
   }
 
+  const deleteConfirmationBody = (
+    <>
+      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+      <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={() => setShowDeleteConfirmation(false)}
+          disabled={isSaving}
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="button"
+          variant="destructive"
+          className="min-h-11"
+          onClick={removeExpense}
+          disabled={isSaving}
+        >
+          {isSaving ? "Eliminando…" : "Eliminar"}
+        </Button>
+      </div>
+    </>
+  );
+
   const title = readOnly
     ? "Detalle del gasto"
     : initialExpense
@@ -317,11 +395,26 @@ export function ExpenseEditorDialog({
     />
   ) : (
     <>
-      <form className="mt-5 space-y-4" onSubmit={submit}>
+      <form
+        className={
+          isMobile
+            ? "mt-4 flex min-h-0 flex-1 flex-col"
+            : "mt-5 space-y-4"
+        }
+        onSubmit={submit}
+      >
+        <div
+          className={
+            isMobile
+              ? "mx-2 min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin]"
+              : undefined
+          }
+        >
+        <div className={isMobile ? "space-y-4 px-3 pt-1 pb-4 sm:px-4" : "space-y-4"}>
         <div className="space-y-2">
           <Label htmlFor="expense-amount">Importe</Label>
           <div className="relative">
-            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl font-medium text-muted-foreground">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xl font-medium text-muted-foreground">
               $
             </span>
             <Input
@@ -330,16 +423,18 @@ export function ExpenseEditorDialog({
               type="text"
               inputMode="decimal"
               autoComplete="off"
-              value={amount}
+              value={amountFocused ? amount : formatAmountInput(amount)}
+              onFocus={() => setAmountFocused(true)}
               onChange={(event) => setAmount(event.target.value)}
+              onBlur={() => setAmountFocused(false)}
               required
               placeholder="0,00"
               aria-describedby="expense-amount-help"
-              className="min-h-[4.5rem] rounded-2xl bg-muted/40 pl-10 pr-4 text-3xl font-semibold tabular-nums"
+              className={`${expenseControlClassName} h-14 min-h-14 pl-9 text-2xl font-semibold tabular-nums md:text-2xl`}
             />
           </div>
-          <p id="expense-amount-help" className="text-xs text-muted-foreground">
-            Pesos argentinos. Podés usar coma o punto para los centavos.
+          <p id="expense-amount-help" className="sr-only">
+            Importe en pesos argentinos.
           </p>
         </div>
 
@@ -360,13 +455,72 @@ export function ExpenseEditorDialog({
             required
             autoComplete="off"
             placeholder="Por ejemplo, compras para la cena"
-            className="min-h-11 rounded-xl px-3"
+            className={expenseControlClassName}
           />
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="expense-category">Categoría</Label>
+          <SelectField
+            id="expense-category"
+            value={categoryId}
+            options={categoryOptions}
+            onValueChange={chooseCategory}
+            placeholder="Elegí una categoría"
+            required
+            describedBy="expense-category-help"
+            className={cn(expenseControlClassName, !categoryId && "text-muted-foreground")}
+          />
+          <p id="expense-category-help" className="text-xs text-muted-foreground empty:hidden">
+            {suggestionStatus === "loading"
+              ? "Jev está buscando una sugerencia…"
+              : suggestionStatus === "suggested"
+                ? "Sugerida por Jev · podés cambiarla."
+                : suggestionStatus === "none"
+                  ? "Jev no encontró una opción clara."
+                  : suggestionStatus === "unavailable"
+                    ? "Jev no está disponible."
+                    : selectedCategory?.isArchived
+                      ? "Categoría archivada · se conserva en el historial."
+                      : ""}
+          </p>
+          {categories.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No hay categorías activas.{" "}
+              <Link
+                href="/categories"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                Abrir catálogo
+              </Link>
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="expense-date">Fecha</Label>
+          <p id="expense-date-help" className="sr-only">
+            Fecha obligatoria. Elegí una fecha para el gasto.
+          </p>
+          <DatePicker
+            id="expense-date"
+            value={expenseDate}
+            onChange={setExpenseDate}
+            describedBy="expense-date-help"
+            isMobile={isMobile}
+            mobileOpen={mobileDateSelectionOpen}
+            onMobileOpen={() => {
+              setDraftExpenseDate(expenseDate);
+              setMobileDateSelectionOpen(true);
+            }}
+            triggerRef={dateTriggerRef}
+            invalid={Boolean(error && !expenseDate)}
+            className={cn(expenseControlClassName, !expenseDate && "text-muted-foreground")}
+          />
+        </div>
         {groups.length > 0 && (
-          <div className="space-y-3 rounded-xl border border-border px-3 py-3">
-            <div className="flex min-h-12 items-center justify-between gap-4">
+          <div className="space-y-4">
+            <div className={cn(expenseControlClassName, "flex items-center justify-between gap-3 border py-0")}>
               <div className="min-w-0">
                 <Label
                   htmlFor="expense-shared"
@@ -374,11 +528,6 @@ export function ExpenseEditorDialog({
                 >
                   Compartido
                 </Label>
-                <p className="text-xs text-muted-foreground">
-                  {shared
-                    ? "Se verá en el grupo elegido."
-                    : "Solo vos vas a ver este gasto."}
-                </p>
               </div>
               <button
                 id="expense-shared"
@@ -411,104 +560,38 @@ export function ExpenseEditorDialog({
             {shared && (
               <div className="space-y-2">
                 <Label htmlFor="expense-group">Grupo</Label>
-                <select
+                <SelectField
                   id="expense-group"
                   value={groupId}
-                  onChange={(event) => {
-                    setGroupId(event.target.value);
+                  options={completeGroups.map((group) => ({
+                    value: group.id,
+                    label: group.name,
+                  }))}
+                  onValueChange={(value) => {
+                    setGroupId(value);
                     setError("");
                   }}
+                  placeholder="Elegí un grupo"
                   required
-                  className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/30 md:text-sm"
-                >
-                  {completeGroups.length !== 1 && (
-                    <option value="">Elegí un grupo</option>
-                  )}
-                  {completeGroups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
-                {completeGroups.length > 1 && (
-                  <p className="text-xs text-muted-foreground">
-                    Elegí en cuál de tus grupos compartirlo.
-                  </p>
-                )}
+                  className={cn(expenseControlClassName, !groupId && "text-muted-foreground")}
+                />
               </div>
             )}
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="expense-category">Categoría</Label>
-          <div className="flex items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="size-3.5 shrink-0 rounded-full border border-foreground/15"
-              style={{
-                backgroundColor: selectedCategory?.color ?? "transparent",
-              }}
-            />
-            <select
-              id="expense-category"
-              value={categoryId}
-              onChange={(event) => chooseCategory(event.target.value)}
-              required
-              aria-describedby="expense-category-help"
-              className="min-h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/30 md:text-sm"
-            >
-              <option value="">Elegí una categoría</option>
-              {categoriesForSelect.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                  {category.isArchived ? " · archivada (solo historial)" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <p id="expense-category-help" className="text-xs text-muted-foreground">
-            {suggestionStatus === "loading"
-              ? "Buscando sugerencia…"
-              : suggestionStatus === "suggested"
-                ? "Sugerida por Jev. Podés elegir otra categoría."
-                : suggestionStatus === "none"
-                  ? "Sin coincidencia clara. Elegí una categoría."
-                  : suggestionStatus === "unavailable"
-                    ? "Sugerencia no disponible. Podés elegir una categoría manualmente."
-                    : selectedCategory?.isArchived
-                      ? "La categoría archivada se conserva en este gasto histórico."
-                      : "La sugerencia nunca impide elegir otra categoría."}
-          </p>
-          {categories.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No hay categorías activas.{" "}
-              <Link
-                href="/categories"
-                className="font-medium text-foreground underline underline-offset-4"
-              >
-                Abrir catálogo
-              </Link>
-            </p>
-          )}
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="expense-date">Fecha</Label>
-          <Input
-            id="expense-date"
-            name="expenseDate"
-            type="date"
-            value={expenseDate}
-            onChange={(event) => setExpenseDate(event.target.value)}
-            required
-            className="min-h-11 rounded-xl px-3"
-          />
         </div>
+        {error && <p className={"text-sm text-destructive " + (isMobile ? "px-5 sm:px-6" : "")} role="alert">{error}</p>}
 
-        {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-
-        <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+        <div
+          className={
+            "flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end " +
+            (isMobile
+              ? "mt-3 shrink-0 bg-card px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-12px_24px_-20px_rgba(0,0,0,0.5)] sm:px-6"
+              : "")
+          }
+        >
           {initialExpense && (
             <Button
               type="button"
@@ -539,47 +622,53 @@ export function ExpenseEditorDialog({
         </div>
       </form>
 
-      <AlertDialog.Root
-        open={showDeleteConfirmation}
-        onOpenChange={(nextOpen) => {
-          if (!isSaving) setShowDeleteConfirmation(nextOpen);
-        }}
-      >
-        <AlertDialog.Portal>
-          <AlertDialog.Backdrop className="fixed inset-0 z-[60] bg-black/40 transition-opacity data-ending-style:opacity-0 data-starting-style:opacity-0" />
-          <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-[61] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-xl outline-none sm:p-6">
-            <div>
-              <AlertDialog.Title className="text-lg font-semibold">
-                ¿Eliminar este gasto?
-              </AlertDialog.Title>
-              <AlertDialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
-                Se quitará de tu historial y, si está compartido, también del balance del grupo.
-              </AlertDialog.Description>
-            </div>
-            {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11"
-                onClick={() => setShowDeleteConfirmation(false)}
-                disabled={isSaving}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                className="min-h-11"
-                onClick={removeExpense}
-                disabled={isSaving}
-              >
-                {isSaving ? "Eliminando…" : "Eliminar"}
-              </Button>
-            </div>
-          </AlertDialog.Popup>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
+      {isMobile ? (
+        <Drawer.Root
+          open={showDeleteConfirmation}
+          onOpenChange={(nextOpen) => {
+            if (!isSaving) setShowDeleteConfirmation(nextOpen);
+          }}
+        >
+          <Drawer.Portal>
+            <Drawer.Backdrop className="fixed inset-0 z-[60] bg-black/40" />
+            <Drawer.Viewport className="fixed inset-0 z-[60] flex items-end justify-center">
+              <Drawer.Popup className="w-full max-w-xl overflow-y-auto overscroll-contain rounded-t-3xl border border-border bg-card text-card-foreground shadow-xl outline-none">
+                <Drawer.Content className="mx-auto max-h-[min(80dvh,32rem)] space-y-4 overflow-y-auto overscroll-contain p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+                  <div>
+                    <Drawer.Title className="text-lg font-semibold">¿Eliminar este gasto?</Drawer.Title>
+                    <Drawer.Description className="mt-2 text-sm leading-6 text-muted-foreground">
+                      Se quitará de tu historial y, si está compartido, también del balance del grupo.
+                    </Drawer.Description>
+                  </div>
+                  {deleteConfirmationBody}
+                </Drawer.Content>
+              </Drawer.Popup>
+            </Drawer.Viewport>
+          </Drawer.Portal>
+        </Drawer.Root>
+      ) : (
+        <AlertDialog.Root
+          open={showDeleteConfirmation}
+          onOpenChange={(nextOpen) => {
+            if (!isSaving) setShowDeleteConfirmation(nextOpen);
+          }}
+        >
+          <AlertDialog.Portal>
+            <AlertDialog.Backdrop className="fixed inset-0 z-[60] bg-black/40" />
+            <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-[61] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-xl outline-none sm:p-6">
+              <div>
+                <AlertDialog.Title className="text-lg font-semibold">
+                  ¿Eliminar este gasto?
+                </AlertDialog.Title>
+                <AlertDialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Se quitará de tu historial y, si está compartido, también del balance del grupo.
+                </AlertDialog.Description>
+              </div>
+              {deleteConfirmationBody}
+            </AlertDialog.Popup>
+          </AlertDialog.Portal>
+        </AlertDialog.Root>
+      )}
     </>
   );
 
@@ -589,31 +678,102 @@ export function ExpenseEditorDialog({
         <Drawer.Portal>
           <Drawer.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity data-ending-style:opacity-0 data-starting-style:opacity-0" />
           <Drawer.Viewport className="fixed inset-0 z-50 flex items-end justify-center">
-            <Drawer.Popup className="w-full max-w-xl overflow-y-auto overscroll-contain rounded-t-3xl border border-border bg-card text-card-foreground shadow-xl outline-none transition-transform duration-200 data-ending-style:translate-y-full data-starting-style:translate-y-full">
-              <Drawer.Content className="mx-auto max-h-[min(92dvh,48rem)] overflow-y-auto overscroll-contain p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:p-6">
-                <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted-foreground/30" aria-hidden="true" />
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <Drawer.Title className="text-xl font-semibold">{title}</Drawer.Title>
-                    <Drawer.Description className="mt-1 text-sm text-muted-foreground">
-                      {readOnly
-                        ? "Gasto compartido del grupo, en modo de consulta."
-                        : "Registrá lo que pagaste."}
-                    </Drawer.Description>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-11 shrink-0"
-                    aria-label="Cerrar formulario"
-                    onClick={() => handleOpenChange(false)}
-                    disabled={isSaving}
+            <Drawer.Popup
+              className={
+                "relative flex max-h-[min(92dvh,48rem)] w-full max-w-xl flex-col overflow-hidden overscroll-contain rounded-t-3xl border border-border bg-card text-card-foreground shadow-xl outline-none transition-[height,transform] duration-200 data-ending-style:translate-y-full data-starting-style:translate-y-full " +
+                (!readOnly || mobileDateSelectionOpen ? "h-[min(92dvh,48rem)]" : "")
+              }
+              onKeyDownCapture={(event) => {
+                if (event.key === "Escape" && mobileDateSelectionOpen) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  cancelMobileDateSelection();
+                }
+              }}
+            >
+              <Drawer.Content className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-hidden pt-5 sm:pt-6">
+                <div className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30" aria-hidden="true" />
+                {mobileDateSelectionOpen ? (
+                  <section
+                    id="mobile-expense-date-selection"
+                    aria-label="Seleccionar fecha del gasto"
+                    className="flex min-h-0 flex-1 flex-col px-5 sm:px-6"
                   >
-                    <X aria-hidden="true" />
-                  </Button>
-                </div>
-                {content}
+                    <div className="flex shrink-0 items-center border-b border-border pb-2">
+                      <Drawer.Title
+                        ref={dateHeadingRef}
+                        tabIndex={-1}
+                        className="text-xl font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+                      >
+                        Seleccionar fecha
+                      </Drawer.Title>
+                    </div>
+                    <div className="flex min-h-0 min-w-0 w-full flex-1 items-start justify-center overflow-y-auto overscroll-contain px-1 pt-3 pb-4">
+                      <Calendar
+                        value={draftExpenseDate}
+                        onChange={setDraftExpenseDate}
+                        expanded
+                      />
+                    </div>
+                    <div className="-mx-5 grid shrink-0 grid-cols-[auto_1fr_1fr] gap-2 border-t border-border px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="min-h-11 px-3"
+                        onClick={() => setDraftExpenseDate(today)}
+                      >
+                        Hoy
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11 px-3"
+                        onClick={cancelMobileDateSelection}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="button"
+                        className="min-h-11 px-3"
+                        onClick={applyMobileDateSelection}
+                        disabled={!draftExpenseDate}
+                      >
+                        Aplicar
+                      </Button>
+                    </div>
+                  </section>
+                ) : (
+                  <>
+                    <div className="flex shrink-0 items-center justify-between gap-4 px-5 sm:px-6">
+                      <div className="min-w-0">
+                        <Drawer.Title className="text-xl font-semibold">{title}</Drawer.Title>
+                        {readOnly && (
+                          <Drawer.Description className="mt-1 text-sm text-muted-foreground">
+                            Gasto compartido del grupo, en modo de consulta.
+                          </Drawer.Description>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-11 shrink-0"
+                        aria-label="Cerrar"
+                        onClick={() => handleOpenChange(false)}
+                        disabled={isSaving}
+                      >
+                        <X aria-hidden="true" />
+                      </Button>
+                    </div>
+                    {readOnly ? (
+                      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6">
+                        {content}
+                      </div>
+                    ) : (
+                      content
+                    )}
+                  </>
+                )}
               </Drawer.Content>
             </Drawer.Popup>
           </Drawer.Viewport>
@@ -627,21 +787,21 @@ export function ExpenseEditorDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Popup className="fixed left-1/2 top-1/2 z-[51] max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-xl outline-none transition-[opacity,scale] duration-150 data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
-          <div className="flex items-start justify-between gap-4">
-            <div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
               <Dialog.Title className="text-xl font-semibold">{title}</Dialog.Title>
-              <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-                {readOnly
-                  ? "Gasto compartido del grupo, en modo de consulta."
-                  : "Registrá lo que pagaste."}
-              </Dialog.Description>
+              {readOnly && (
+                <Dialog.Description className="mt-1 text-sm text-muted-foreground">
+                  Gasto compartido del grupo, en modo de consulta.
+                </Dialog.Description>
+              )}
             </div>
             <Button
               type="button"
               variant="ghost"
               size="icon"
               className="size-11 shrink-0"
-              aria-label="Cerrar formulario"
+              aria-label="Cerrar"
               onClick={() => handleOpenChange(false)}
               disabled={isSaving}
             >
@@ -655,6 +815,10 @@ export function ExpenseEditorDialog({
   );
 
   function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && isMobile && mobileDateSelectionOpen) {
+      cancelMobileDateSelection();
+      return;
+    }
     if (!nextOpen && isSaving) return;
     onOpenChange(nextOpen);
   }
@@ -730,6 +894,13 @@ function centsToInput(cents: string): string {
   const whole = (value / 100n).toString();
   const fraction = (value % 100n).toString().padStart(2, "0");
   return whole + "," + fraction;
+}
+
+function formatAmountInput(value: string): string {
+  const cents = amountInputToCents(value);
+  return cents === null
+    ? value
+    : formatArs(cents).replace("$", "").trimStart();
 }
 
 function formatDateOnly(date: string): string {

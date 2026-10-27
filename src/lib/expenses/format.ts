@@ -4,7 +4,7 @@ export function formatArs(amountCents: string | bigint): string {
   const absolute = negative ? -cents : cents;
   const whole = (absolute / BigInt(100)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   const fraction = (absolute % BigInt(100)).toString().padStart(2, "0");
-  return `${negative ? "−" : ""}$${whole},${fraction}`;
+  return `${negative ? "−" : ""}$ ${whole},${fraction}`;
 }
 
 export function currentDateInBuenosAires(now = new Date()): string {
