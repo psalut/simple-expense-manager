@@ -30,7 +30,7 @@ La refactorización a un único hogar y la implementación PWA fueron confirmada
 ### Casa (`/household`)
 
 - Acceso directo desde la pestaña **Casa**, con ícono de corazón; no hay listado ni selector de grupos.
-- Selector mensual y total de gastos compartidos de ambos integrantes, centrado debajo del mes con el mismo formato que en Gastos; los gastos del mes se agrupan por día e identifican quién pagó cada uno.
+- Selector mensual y total de gastos compartidos de ambos integrantes, centrado debajo del mes con el mismo formato que en Gastos; los gastos del mes se agrupan por día y muestran las iniciales de quien pagó cada uno en un badge.
 - No se muestra el bloque de balance acumulado, el desglose ni una lista de integrantes; Casa prioriza la lista de gastos. El reparto 50/50 se mantiene como regla del dominio.
 - El alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil, sin un título interno para la lista de gastos compartidos.
 - Alta de gasto desde Casa con opción Compartido activada automáticamente.

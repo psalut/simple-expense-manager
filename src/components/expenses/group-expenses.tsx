@@ -126,10 +126,25 @@ export function GroupExpenses({
                   <span className="block break-words font-medium">
                     {expense.description}
                   </span>
-                  <span className="mt-1 block truncate text-sm text-muted-foreground">
-                    {expense.payerName} pagó · {expense.categoryName}
-                    {expense.categoryIsArchived ? " · archivada" : ""}
-                  </span>
+                  {groupName === "Casa" ? (
+                    <span className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+                      <span
+                        aria-hidden="true"
+                        className="inline-flex shrink-0 items-center rounded-full bg-brand-grey-olive px-1.5 py-0 text-[10px] font-medium leading-4 text-foreground"
+                      >
+                        {payerInitials(expense.payerName)}
+                      </span>
+                      <span className="min-w-0 truncate">
+                        {expense.categoryName}
+                        {expense.categoryIsArchived ? " · archivada" : ""}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="mt-1 block truncate text-sm text-muted-foreground">
+                      {expense.payerName} pagó · {expense.categoryName}
+                      {expense.categoryIsArchived ? " · archivada" : ""}
+                    </span>
+                  )}
                 </span>
               </span>
               <span className="shrink-0 text-right">
@@ -328,4 +343,11 @@ export function GroupExpenses({
       />
     </div>
   );
+}
+
+function payerInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const firstInitial = parts[0]?.[0] ?? "?";
+  const lastInitial = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "";
+  return `${firstInitial}${lastInitial}`.toLocaleUpperCase("es-AR");
 }

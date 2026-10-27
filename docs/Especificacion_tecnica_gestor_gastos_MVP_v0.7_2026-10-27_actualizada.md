@@ -41,7 +41,7 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 
 - Navegación inferior: **Gastos**, **Casa** (ícono corazón), **Categorías**.
 - `/`: lista personal filtrada por mes; selector mensual; solo el importe del total mensual, centrado bajo el mes; header compacto; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
-- `/household`: selector mensual y total del mes de los gastos compartidos de ambos integrantes, centrado bajo el mes como en Gastos; lista agrupada por día y con el pagador identificado; sin título interno para la lista, bloque de balance, desglose ni lista de integrantes; alta con Compartido activado desde el encabezado en escritorio y un botón flotante **+** en móvil.
+- `/household`: selector mensual y total del mes de los gastos compartidos de ambos integrantes, centrado bajo el mes como en Gastos; lista agrupada por día y pagador identificado mediante sus iniciales en un badge; sin título interno para la lista, bloque de balance, desglose ni lista de integrantes; alta con Compartido activado desde el encabezado en escritorio y un botón flotante **+** en móvil.
 - `/categories`: administración del catálogo global; el listado muestra nombre, color y estado, y la descripción se consulta al abrir la edición de una categoría. Sin título interno «Catálogo global»; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
 - Drawer en móvil / Dialog en escritorio, calendario amplio, fecha con TZ coherente en Buenos Aires, zonas táctiles adecuadas y áreas seguras en modo PWA.
 - Las rutas heredadas de grupos no forman parte de la navegación principal; sus redirecciones/comportamiento deben respetar la implementación actual y la autorización.
