@@ -14,6 +14,17 @@ El seed usa IDs estables y ON CONFLICT DO NOTHING: se puede repetir sin sobreesc
 
 Las sugerencias Jev son opcionales. Para habilitarlas, configurá `TYPESAFE_API_KEY` en el entorno de servidor. Sin esa clave, o ante errores del servicio, la app deja elegir la categoría manualmente. El umbral conservador por defecto es 0.8; se puede ajustar entre 0.5 y 1 con `CATEGORY_SUGGESTION_MIN_PROBABILITY`.
 
+## PWA e instalación online
+
+La app puede agregarse a la pantalla de inicio y abrirse en modo standalone cuando se publica bajo HTTPS. Sigue necesitando conexión a internet para iniciar sesión y usar Gastos, Casa y Categorías; no ofrece modo offline ni sincronización.
+
+- **Android (Chrome):** abrí el dominio HTTPS, tocá el menú ⋮ y elegí **Instalar app** o **Agregar a pantalla principal**.
+- **iPhone (Safari):** abrí el dominio HTTPS, tocá **Compartir** y elegí **Agregar a inicio**.
+
+Next sirve el manifest desde `src/app/manifest.ts`. Los íconos estándar son `public/icons/icon-192x192.png` y `public/icons/icon-512x512.png`; las variantes maskable son archivos propios de 192×192 y 512×512. Apple usa `public/apple-touch-icon.png` (180×180), y el favicon ICO se sirve estáticamente desde `public/favicon.ico` para conservar sus subíconos originales. Los archivos tienen fondo opaco y deben conservarse tal como fueron entregados. `assets/pwa/source-master-1024.png` se conserva como fuente del diseño (el archivo mide 1254×1254). No hay generador local de íconos: al renovarlos, actualizá directamente esos recursos y verificá formato y dimensiones.
+
+No se agrega service worker: no hace falta para la instalación básica con manifest y HTTPS, y la app no busca cachear contenido. Tras revisar esta rama, integrala a `main`; Vercel publicará el cambio según su configuración actual. En el dominio desplegado, comprobá `/manifest.webmanifest`, los tres íconos y la instalación en Chrome Android y Safari iPhone.
+
 ## Comandos
 
 - pnpm db:generate: genera una migración desde el esquema Drizzle actual.
@@ -22,4 +33,4 @@ Las sugerencias Jev son opcionales. Para habilitarlas, configurá `TYPESAFE_API_
 - pnpm lint: ejecuta ESLint.
 - pnpm exec tsc --noEmit: comprueba tipos.
 - pnpm test: ejecuta Vitest.
-- pnpm exec next build --webpack: compila usando Webpack.
+- pnpm build: compila la app.

@@ -128,3 +128,9 @@
     @apply font-sans;
   }
 }
+
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
+}

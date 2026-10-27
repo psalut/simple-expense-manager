@@ -1,6 +1,6 @@
 # Gestor de gastos personales y compartidos — Idea de producto
 
-**Versión:** 0.7 · **Actualizado:** 27 de octubre de 2026 · **Estado:** primera publicación en Vercel realizada; PWA pendiente
+**Versión:** 0.7 · **Actualizado:** 27 de octubre de 2026 · **Estado:** primera publicación en Vercel realizada; PWA online implementada en `feat/pwa`, revisión y despliegue pendientes
 **Documento complementario:** `Especificacion_tecnica_gestor_gastos_MVP_v0.7.md`
 
 ## Estado real y cambio de rumbo
@@ -13,7 +13,7 @@ La simplificación v0.7 **ya fue implementada** según los informes del agente: 
 
 **Primer despliegue:** el usuario confirmó el **27 de octubre de 2026** que realizó el primer deploy en Vercel desde GitHub (`main`). No se proporcionó aún la URL definitiva ni resultados de una ronda de uso sobre producción; no se asume validada la autenticación, la conexión a Neon o Jev desde el dominio publicado hasta probarlos.
 
-**Pendientes conocidos:** definir/probar pérdida de conexión y reintentos (E2E-26), afinar Jev con el uso, validar producción con dos cuentas, completar PWA e instalación en dispositivos. La exposición previa de secretos de `.env.local` motivó recomendación de rotación; **no está confirmada**. El último hash de commit, merge y estado del worktree no constan en este seguimiento.
+**Pendientes conocidos:** definir/probar pérdida de conexión y reintentos (E2E-26), afinar Jev con el uso, validar producción con dos cuentas y probar la instalación PWA en dispositivos después del despliegue. La PWA online está implementada en `feat/pwa`, aún no integrada ni publicada. La exposición previa de secretos de `.env.local` motivó recomendación de rotación; **no está confirmada**. El último hash de commit, merge y `git push` no constan en este seguimiento.
 
 Esta versión reemplaza definitivamente la arquitectura N-personas y categorías por usuario/grupo de v0.6. En `docs/` solo se conservarán este documento y la especificación técnica; los reportes temporales E2E se eliminan del repositorio, pero se conservan las pruebas automatizadas reproducibles.
 
@@ -106,7 +106,7 @@ El detalle de grupo muestra los saldos de **ambos integrantes** con estado A fav
 - **Grupos** (`/groups`): grupos propios, invitaciones y detalle con gastos y balances de una pareja. Mantener acceso a varios grupos.
 - **Categorías** (`/categories`): catálogo global editable con nombre, descripción, color, archivado/restauración y borrado seguro. **Eliminar la ruta de categorías por grupo** y los enlaces antiguos hacia ella.
 - **Cuenta**: registro/login/logout existentes con Better Auth.
-- **PWA** online instalable: fase posterior, sin offline.
+- **PWA** online instalable: manifest e íconos implementados en `feat/pwa`, pendientes de revisión/despliegue; sin offline.
 
 Mantener la navegación inferior móvil **Gastos / Grupos / Categorías**, Tailwind + shadcn/ui Rhea y accesibilidad de toques, foco y contraste.
 
@@ -134,6 +134,6 @@ Terceros integrantes, selección de participantes, repartos distintos de 50/50, 
 - **Validado antes de publicar:** flujos de categorías, grupos, invitaciones, edición, reparto y privacidad; 9/9 pruebas de autorización contra PostgreSQL real; verificaciones manuales de fecha, Jev y experiencia móvil. El módulo de UI se refinó en iteraciones adicionales.
 - **Desplegado:** primer deploy en Vercel confirmado por el usuario el 27/10/2026, importando la rama `main` desde GitHub. **Aún no hay constancia de un smoke test productivo ni URL final registrada.**
 - **Próximo paso:** pruebas desde el dominio de producción y un celular real, con dos cuentas; comprobar login/cookies, Neon, Jev, gastos y balances. Revisar rotación de secretos y separación de entornos antes de extender el piloto.
-- **Pendiente posterior:** PWA instalable online, comportamiento de error/reintento sin conexión (E2E-26), calibración futura de Jev y eventual prueba HTTP/CSRF de Server Actions.
+- **Pendiente posterior:** revisar, desplegar y probar la instalación PWA online en dispositivos; comportamiento de error/reintento sin conexión (E2E-26), calibración futura de Jev y eventual prueba HTTP/CSRF de Server Actions.
 - **Documentación y Git:** mantener únicamente estos dos `.md` de seguimiento en `docs/` y tests reproducibles en código, sin reportes efímeros; ramas por funcionalidad, commits Conventional Commits en inglés y merge directo a `main` sin PR.
 > **Principio rector:** una carga por gasto, una categoría global con color, varios grupos pero siempre de dos, reparto 50/50 y IA que ahorra toques.

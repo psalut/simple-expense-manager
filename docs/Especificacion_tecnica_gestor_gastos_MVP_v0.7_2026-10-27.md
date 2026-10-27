@@ -1,6 +1,6 @@
 # Gestor de gastos personales y compartidos — Especificación técnica
 
-**Versión:** 0.7 · **Actualizado:** 27 de octubre de 2026 · **Estado:** primer despliegue en Vercel realizado; PWA pendiente
+**Versión:** 0.7 · **Actualizado:** 27 de octubre de 2026 · **Estado:** primer despliegue en Vercel realizado; PWA online implementada en `feat/pwa`, revisión y despliegue pendientes
 **Documento complementario:** `Idea_producto_gestor_gastos_v0.7.md`
 
 ## 0. Estado real y alcance de esta versión
@@ -13,7 +13,7 @@
 
 **Seguridad y Git:** durante las pruebas se reportó exposición de secretos de `.env.local` en una salida de herramienta. Se recomendó rotar credenciales de Neon y `BETTER_AUTH_SECRET` (y TypeSafe si correspondía); **la rotación no fue confirmada**. El usuario trabajó en `fix/mobile-ui-refinement` y después en su carpeta habitual; reportó que el refinamiento anterior ya estaba confirmado. El estado final de commits, merge y `git push` **no fue verificado de forma independiente**, aunque Vercel ya importó `main` desde GitHub. Mantener en `docs/` únicamente esta documentación técnica y la funcional, junto con tests reproducibles en código (sin reportes efímeros).
 
-**Pendiente de MVP:** comportamiento ante fallos de red, instalación PWA online y validación funcional del sitio desplegado en dispositivos reales; pruebas HTTP de protocolo/CSRF pendientes si se incorporan al plan de seguridad. **Vercel:** el usuario confirmó un primer deploy realizado el 27/10/2026; todavía no se comunicó la URL definitiva ni un recorrido funcional de producción.
+**Pendiente de MVP:** comportamiento ante fallos de red y validación funcional del sitio desplegado en dispositivos reales; instalación PWA aún pendiente de revisión, despliegue y prueba física; pruebas HTTP de protocolo/CSRF pendientes si se incorporan al plan de seguridad. **Vercel:** el usuario confirmó un primer deploy realizado el 27/10/2026; todavía no se comunicó la URL definitiva ni un recorrido funcional de producción.
 
 ## 1. Stack y arquitectura
 
@@ -26,7 +26,7 @@
 | Persistencia | Neon PostgreSQL + Drizzle ORM/Kit, migraciones SQL versionadas |
 | Mutaciones | Server Actions protegidas, reglas concentradas en servicios de dominio |
 | IA | TypeSafe AI **Jev** mediante API HTTP directa `POST https://api.typesafe.ai/v1/systemone`, modelo `jev-latest`, `fetch` en servidor y `TYPESAFE_API_KEY`; sin AI Gateway ni SDK `ai` |
-| PWA/hosting | Primer deploy en Vercel realizado; PWA/manifest e instalación aún pendientes; sin offline |
+| PWA/hosting | Manifest nativo de App Router, PNG estándar y maskable, Apple touch icon y favicon ICO; instalación online en modo standalone; sin service worker, offline ni caché de datos |
 
 No agregar ORM paralelo, backend separado, Redis, colas, sockets, analítica, adjuntos, motor contable ni sincronización offline.
 
@@ -175,7 +175,7 @@ Ejemplo: $100,01 = 10.001 centavos → pagador 5.001; otro miembro 5.000. No hac
 1. **Realizado:** dominio v0.7 con grupos de dos, categorías globales, gastos 50/50 y Jev directo; reset inicial de Neon y seed; tests principales y refinamiento de UI móvil.
 2. **Realizado según confirmación del usuario (27/10/2026):** primer deploy del proyecto en Vercel desde el repositorio GitHub, rama `main`.
 3. **Siguiente:** validar el sitio desplegado con dos cuentas y dispositivos reales: login/logout, cookies Better Auth, gasto personal y compartido, invitaciones, balance, fecha, catálogos y sugerencia TypeSafe. Registrar URL/dominio definitivo sin secretos.
-4. **Pendiente:** revisar rotación de credenciales y separación desarrollo/producción; definir errores y reintentos de red (E2E-26); implementar PWA online; mejorar Jev con datos del piloto y evaluar pruebas HTTP/CSRF de Next.
+4. **Pendiente:** revisar rotación de credenciales y separación desarrollo/producción; definir errores y reintentos de red (E2E-26); revisar e integrar la PWA online y probar la instalación desde el dominio HTTPS en Android/iPhone; mejorar Jev con datos del piloto y evaluar pruebas HTTP/CSRF de Next.
 
 **Git:** ramas por funcionalidad, Conventional Commits en inglés y merges directos a `main` sin PR. El deploy está confirmado por el usuario, pero el hash concreto del commit publicado y el estado final del worktree no están consignados en esta documentación.
 ## 10. Fuera del MVP y definición de terminado
