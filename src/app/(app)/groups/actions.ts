@@ -18,6 +18,7 @@ export async function createSharedSpaceAction(
 ): Promise<ActionResult<null>> {
   return runAction(async (userId) => {
     await createSharedSpace(userId, name);
+    revalidatePath("/household");
     revalidatePath("/groups");
     revalidatePath("/categories");
     return null;
@@ -29,6 +30,7 @@ export async function createSharedSpaceInvitationAction(
 ): Promise<ActionResult<{ code: string; expiresAt: string }>> {
   return runAction(async (userId) => {
     const invitation = await createSharedSpaceInvitation(userId, sharedSpaceId);
+    revalidatePath("/household");
     revalidatePath("/groups");
     revalidatePath("/groups/[id]", "page");
     return invitation;
@@ -40,6 +42,7 @@ export async function acceptSharedSpaceInvitationAction(
 ): Promise<ActionResult<null>> {
   return runAction(async (userId) => {
     await acceptSharedSpaceInvitation(userId, code);
+    revalidatePath("/household");
     revalidatePath("/groups");
     revalidatePath("/categories");
     return null;

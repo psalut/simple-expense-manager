@@ -154,7 +154,8 @@ export function ExpenseEditorDialog({
     color: category.color,
   }));
   const selectedGroup = groups.find((group) => group.id === groupId) ?? null;
-  const canShare = completeGroups.length > 0;
+  const historicalShared = Boolean(initialExpense?.sharedSpaceId && !groups.some((group) => group.id === initialExpense.sharedSpaceId));
+  const canShare = completeGroups.length === 1;
 
   useEffect(() => {
     if (
@@ -279,14 +280,12 @@ export function ExpenseEditorDialog({
 
     if (shared && !groupId) {
       setError(
-        completeGroups.length > 1
-          ? "Elegí el grupo antes de continuar."
-          : "Elegí un grupo completo para compartir este gasto.",
+        "Casa necesita dos integrantes vinculados para compartir este gasto.",
       );
       submitting.current = false;
       return;
     }
-    if (shared && !completeGroups.some((group) => group.id === groupId)) {
+    if (shared && !historicalShared && !completeGroups.some((group) => group.id === groupId)) {
       setError("Ese grupo todavía necesita dos integrantes para compartir gastos.");
       submitting.current = false;
       return;
@@ -518,7 +517,7 @@ export function ExpenseEditorDialog({
             className={cn(expenseControlClassName, !expenseDate && "text-muted-foreground")}
           />
         </div>
-        {groups.length > 0 && (
+        {(
           <div className="space-y-4">
             <div className={cn(expenseControlClassName, "flex items-center justify-between gap-3 border py-0")}>
               <div className="min-w-0">
@@ -534,8 +533,8 @@ export function ExpenseEditorDialog({
                 type="button"
                 role="switch"
                 aria-checked={shared}
-                aria-label="Compartir este gasto con un grupo"
-                disabled={!canShare}
+                aria-label="Compartir este gasto con Casa"
+                disabled={!canShare && !shared}
                 onClick={() => changeShared(!shared)}
                 className={
                   "relative h-11 w-14 shrink-0 rounded-full bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 before:absolute before:left-1/2 before:top-1/2 before:h-7 before:w-12 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:transition-colors " +
@@ -552,31 +551,13 @@ export function ExpenseEditorDialog({
                 />
               </button>
             </div>
+            {historicalShared && shared && <p className="text-xs leading-5 text-muted-foreground">Este gasto conserva su grupo histórico. Al dejar de compartirlo, solo podrás volver a compartirlo en Casa.</p>}
             {!canShare && (
               <p className="text-xs leading-5 text-muted-foreground">
-                Tus grupos todavía necesitan una segunda persona para compartir gastos.
+                Para compartir gastos, primero vinculá a la segunda persona en Casa.
               </p>
             )}
-            {shared && (
-              <div className="space-y-2">
-                <Label htmlFor="expense-group">Grupo</Label>
-                <SelectField
-                  id="expense-group"
-                  value={groupId}
-                  options={completeGroups.map((group) => ({
-                    value: group.id,
-                    label: group.name,
-                  }))}
-                  onValueChange={(value) => {
-                    setGroupId(value);
-                    setError("");
-                  }}
-                  placeholder="Elegí un grupo"
-                  required
-                  className={cn(expenseControlClassName, !groupId && "text-muted-foreground")}
-                />
-              </div>
-            )}
+
           </div>
         )}
 
@@ -637,7 +618,7 @@ export function ExpenseEditorDialog({
                   <div>
                     <Drawer.Title className="text-lg font-semibold">¿Eliminar este gasto?</Drawer.Title>
                     <Drawer.Description className="mt-2 text-sm leading-6 text-muted-foreground">
-                      Se quitará de tu historial y, si está compartido, también del balance del grupo.
+                      Se quitará de tu historial y, si está compartido, también del balance de Casa.
                     </Drawer.Description>
                   </div>
                   {deleteConfirmationBody}
@@ -661,7 +642,7 @@ export function ExpenseEditorDialog({
                   ¿Eliminar este gasto?
                 </AlertDialog.Title>
                 <AlertDialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Se quitará de tu historial y, si está compartido, también del balance del grupo.
+                  Se quitará de tu historial y, si está compartido, también del balance de Casa.
                 </AlertDialog.Description>
               </div>
               {deleteConfirmationBody}

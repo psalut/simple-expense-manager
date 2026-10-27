@@ -1,9 +1,8 @@
 import { ExpensesList } from "@/components/expenses/expenses-list";
 import { listCategories } from "@/lib/server/categories";
 import { getAuthenticatedUserProfile } from "@/lib/server/authenticated-user";
-import { listPersonalExpenses } from "@/lib/server/expenses";
-import { getSharedSpacesForUser } from "@/lib/server/shared-spaces";
-import { getSharedSpaceDisplayName } from "@/lib/shared-spaces/display-name";
+import { getPersonalMonthlyTotal, listPersonalExpenses } from "@/lib/server/expenses";
+import { getHouseholdForUser } from "@/lib/server/household";
 import {
   currentDateInBuenosAires,
   normalizeExpenseMonth,
@@ -23,19 +22,16 @@ export default async function HomePage({
   const today = currentDateInBuenosAires();
   const month = normalizeExpenseMonth(params.month, today);
   const nextMonth = shiftMonth(month, 1);
-  const [expenses, categories, spaces] = await Promise.all([
+  const [expenses, categories, household, monthlyTotal] = await Promise.all([
     listPersonalExpenses(userId, month + "-01", nextMonth + "-01"),
     listCategories(),
-    getSharedSpacesForUser(userId),
+    getHouseholdForUser(userId),
+    getPersonalMonthlyTotal(userId, month + "-01", nextMonth + "-01"),
   ]);
-  const groups = spaces.map((space) => ({
-    id: space.id,
-    name: getSharedSpaceDisplayName(space, spaces),
-    members: space.members,
-  }));
+  const groups = household.space ? [household.space] : [];
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 pb-28 pt-8 sm:px-6 sm:pb-12 sm:pt-10">
+    <main className="mx-auto w-full max-w-3xl px-4 pb-28 pt-3 sm:px-6 sm:pb-12 sm:pt-10">
       <ExpensesList
         expenses={expenses}
         categories={categories}
@@ -43,6 +39,7 @@ export default async function HomePage({
         currentUserId={userId}
         account={user}
         month={month}
+        monthlyTotal={monthlyTotal}
         today={today}
       />
     </main>

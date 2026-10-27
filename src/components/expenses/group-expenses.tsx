@@ -24,6 +24,7 @@ type Props = {
   expenses: GroupExpenseView[];
   balances: GroupBalanceView[];
   today: string;
+  allowCreate?: boolean;
 };
 
 export function GroupExpenses({
@@ -35,6 +36,7 @@ export function GroupExpenses({
   expenses,
   balances,
   today,
+  allowCreate = true,
 }: Props) {
   const router = useRouter();
   const [activeExpense, setActiveExpense] = useState<{
@@ -58,7 +60,7 @@ export function GroupExpenses({
   }
 
   function addExpense() {
-    if (!groupIsComplete) return;
+    if (!groupIsComplete || !allowCreate) return;
     instance.current += 1;
     setNewExpenseKey(instance.current);
     setActiveExpense(null);
@@ -69,16 +71,13 @@ export function GroupExpenses({
     <section className="space-y-8">
       <section aria-labelledby="group-balance-heading" className="space-y-3">
         <header>
-          <h2 id="group-balance-heading" className="text-xl font-semibold tracking-tight">
-            Balances
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Acumulados desde el inicio de este grupo.
-          </p>
+          <h2 id="group-balance-heading" className="text-lg font-semibold">Tu balance</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Acumulado desde el inicio</p>
+          <p className="mt-2 break-words text-sm">{groups.find((group) => group.id === groupId)?.members.map((member) => member.name).join(" · ")}</p>
         </header>
         {groupIsComplete ? (
           <ul className="divide-y divide-border border-y border-border">
-            {balances.map((member) => {
+            {balances.filter((member) => member.userId === currentUserId).map((member) => {
               const balance = BigInt(member.balanceCents);
               const status =
                 balance > 0n ? "A favor" : balance < 0n ? "En contra" : "Equilibrado";
@@ -86,21 +85,21 @@ export function GroupExpenses({
                 <li key={member.userId}>
                   <details>
                     <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/30 [&::-webkit-details-marker]:hidden">
-                      <span className="min-w-0 truncate font-medium">{member.name}</span>
-                      <span className="shrink-0 text-right">
+                      <span className="min-w-0 truncate font-medium">Ver desglose</span>
+                      <span className="min-w-0 text-right [overflow-wrap:anywhere]">
                         <span className="block text-xs text-muted-foreground">{status}</span>
-                        <span className="tabular-nums">{formatArs(member.balanceCents)}</span>
+                        <span className="text-2xl font-semibold tabular-nums">{formatArs(member.balanceCents)}</span>
                       </span>
                     </summary>
                     <dl className="mb-3 grid grid-cols-2 gap-3 rounded-xl bg-muted/50 px-3 py-3 text-sm">
                       <div>
-                        <dt className="text-xs text-muted-foreground">Total pagado</dt>
+                        <dt className="text-xs text-muted-foreground">Pagaste</dt>
                         <dd className="mt-1 font-medium tabular-nums">
                           {formatArs(member.paidCents)}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-muted-foreground">Parte asignada</dt>
+                        <dt className="text-xs text-muted-foreground">Tu parte</dt>
                         <dd className="mt-1 font-medium tabular-nums">
                           {formatArs(member.assignedCents)}
                         </dd>
@@ -122,13 +121,11 @@ export function GroupExpenses({
         <header className="flex items-center justify-between gap-3">
           <div>
             <h2 id="group-expenses-heading" className="text-xl font-semibold tracking-tight">
-              Gastos del grupo
+              Gastos compartidos
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Cada gasto aparece una sola vez en el balance.
-            </p>
+
           </div>
-          {groupIsComplete && (
+          {groupIsComplete && allowCreate && (
             <Button
               type="button"
               className="min-h-11 shrink-0 gap-2"

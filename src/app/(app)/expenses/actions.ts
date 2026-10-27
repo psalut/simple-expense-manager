@@ -53,6 +53,7 @@ export async function deleteExpenseAction(
 
 function revalidateExpenseViews(sharedSpaceId: string | null) {
   revalidatePath("/");
+  revalidatePath("/household");
   if (sharedSpaceId) revalidatePath("/groups/" + sharedSpaceId);
 }
 

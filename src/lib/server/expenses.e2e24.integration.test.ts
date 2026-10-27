@@ -28,10 +28,9 @@ import {
 import { db } from "@/db";
 import { categories } from "@/db/categories-schema";
 import { expenses } from "@/db/expenses-schema";
-import { sharedSpaces } from "@/db/shared-space-schema";
+import { sharedSpaces, sharedSpaceMembers } from "@/db/shared-space-schema";
 import { user } from "@/db/auth-schema";
 
-const EXPECTED_DEV_HOST = "ep-morning-poetry-b6dofnor.c-2.sa-east-1.aws.neon.tech";
 const TEST_DATE = "2026-10-25";
 const RUN_ID = randomUUID();
 
@@ -72,9 +71,14 @@ describe("E2E-24 server authorization against Neon/PostgreSQL", () => {
     const [identity] = await db.execute<{ database: string; schema: string }>(
       sql`select current_database() as database, current_schema() as schema`,
     );
-    if (identity?.database !== "neondb" || identity.schema !== "public") {
-      throw new Error("E2E-24 se niega a escribir: la identidad de la base no coincide con el Neon de desarrollo confirmado.");
+    if (!identity?.schema.startsWith("test_household_")) {
+      throw new Error("E2E-24 only writes to its isolated disposable schema.");
     }
+
+    await db.insert(categories).values([
+      { id: randomUUID(), name: "Fixture A", description: "Test category A", color: "#336699" },
+      { id: randomUUID(), name: "Fixture B", description: "Test category B", color: "#663399" },
+    ]);
 
     const activeCategories = await db
       .select({ id: categories.id })
@@ -91,19 +95,23 @@ describe("E2E-24 server authorization against Neon/PostgreSQL", () => {
     accountB = await createAuthenticatedFixture("B");
     accountC = await createAuthenticatedFixture("C");
 
-    const mainName = `E2E-24 ${RUN_ID} A-B`;
+    const mainName = "Casa";
     createdGroupNames.push(mainName);
     await createSharedSpace(accountA.id, mainName);
     mainGroupId = await findCreatedGroupId(mainName);
+    process.env.HOUSEHOLD_SPACE_ID = mainGroupId;
     const mainInvite = await createSharedSpaceInvitation(accountA.id, mainGroupId);
     await acceptSharedSpaceInvitation(accountB.id, mainInvite.code);
 
     const targetName = `E2E-24 ${RUN_ID} A-C`;
     createdGroupNames.push(targetName);
-    await createSharedSpace(accountA.id, targetName);
-    targetGroupId = await findCreatedGroupId(targetName);
-    const targetInvite = await createSharedSpaceInvitation(accountA.id, targetGroupId);
-    await acceptSharedSpaceInvitation(accountC.id, targetInvite.code);
+    // Historical group fixture predates 0001; normal services must not create one.
+    targetGroupId = randomUUID();
+    await db.insert(sharedSpaces).values({ id: targetGroupId, name: targetName, createdBy: accountA.id });
+    await db.insert(sharedSpaceMembers).values([
+      { sharedSpaceId: targetGroupId, userId: accountA.id },
+      { sharedSpaceId: targetGroupId, userId: accountC.id },
+    ]);
 
     sharedDraft = {
       amount: "100.00",
@@ -367,12 +375,7 @@ describe("E2E-24 server authorization against Neon/PostgreSQL", () => {
 });
 
 function assertConfirmedDevelopmentDatabase() {
-  const raw = process.env.DATABASE_URL;
-  if (!raw) throw new Error("Definí DATABASE_URL desde el .env.local de desarrollo confirmado.");
-  const url = new URL(raw);
-  if (url.hostname !== EXPECTED_DEV_HOST || url.pathname !== "/neondb") {
-    throw new Error("E2E-24 se niega a escribir: DATABASE_URL no coincide con el endpoint Neon de desarrollo confirmado.");
-  }
+  if (process.env.RUN_DB_INTEGRATION !== "true") throw new Error("Explicit DB integration opt-in required.");
 }
 
 async function createAuthenticatedFixture(label: string): Promise<TestAccount> {

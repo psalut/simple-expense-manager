@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, Link2, UsersRound } from "lucide-react";
+import { Copy, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +62,7 @@ export function GroupDetail({
   async function copyCode() {
     try {
       await navigator.clipboard.writeText(code);
-      setFeedback("Código copiado. Compartilo con una persona para completar el grupo.");
+      setFeedback("Código copiado. Compartilo con una persona para completar Casa.");
     } catch {
       setFeedback("Seleccioná el código y copialo para compartirlo.");
     }
@@ -75,7 +75,7 @@ export function GroupDetail({
         account={account}
       />
 
-      <GroupExpenses
+      {groupIsFull && <GroupExpenses
         groupId={space.id}
         groupName={displayName}
         groups={groups}
@@ -84,38 +84,17 @@ export function GroupDetail({
         expenses={expenses}
         balances={balances}
         today={today}
-      />
+      />}
 
-      <section aria-labelledby="group-members-heading" className="space-y-4">
-        <h2 id="group-members-heading" className="flex items-center gap-2 text-lg font-semibold">
-          <UsersRound size={19} aria-hidden="true" />
-          Integrantes
-        </h2>
-        <ul className="divide-y divide-border rounded-2xl border border-border bg-card px-4">
-          {space.members.map((member) => (
-            <li key={member.userId} className="py-3 text-sm first:pt-4 last:pb-4">
-              {member.name}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section aria-labelledby="group-invitation-heading" className="space-y-4">
+      {!groupIsFull && <section aria-labelledby="group-invitation-heading" className="space-y-4">
         <div>
           <h2 id="group-invitation-heading" className="text-lg font-semibold">
             Invitación
           </h2>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            {groupIsFull
-              ? "Este grupo ya tiene dos integrantes y puede compartir gastos."
-              : "El grupo necesita una segunda persona para poder compartir gastos. Cada código se usa una vez y vence en siete días."}
+            Invitá a la segunda persona para compartir gastos. El código vence en siete días y se usa una sola vez. Reemplazarlo invalida el anterior.
           </p>
         </div>
-        {groupIsFull ? (
-          <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-            No se pueden sumar más integrantes.
-          </p>
-        ) : (
           <Button
             type="button"
             variant="outline"
@@ -124,9 +103,8 @@ export function GroupDetail({
             disabled={isPending}
           >
             <Link2 aria-hidden="true" />
-            {isPending ? "Preparando…" : code ? "Generar otro código" : "Generar invitación"}
+            {isPending ? "Preparando…" : code ? "Reemplazar código" : "Generar invitación"}
           </Button>
-        )}
         {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
         {feedback && (
           <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
@@ -164,7 +142,7 @@ export function GroupDetail({
             )}
           </div>
         )}
-      </section>
+      </section>}
     </>
   );
 }

@@ -25,6 +25,8 @@ export const sharedSpaces = pgTable("shared_spaces", {
     .notNull(),
 }, (table) => [
   check("shared_spaces_member_count_check", sql`${table.memberCount} BETWEEN 0 AND 2`),
+  check("shared_spaces_household_name_check", sql`${table.name} = 'Casa'`),
+  uniqueIndex("shared_spaces_single_household_unique").on(sql`(true)`),
 ]);
 
 export const sharedSpaceMembers = pgTable(

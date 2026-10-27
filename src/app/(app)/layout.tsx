@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { AppNavigation } from "@/components/navigation/app-navigation";
+import { isAccountAllowed } from "@/lib/server/household";
 
 export default async function AppLayout({
   children,
@@ -18,6 +19,7 @@ export default async function AppLayout({
   if (!session) {
     redirect("/login");
   }
+  if (!(await isAccountAllowed(session.user.id))) redirect("/access-denied");
 
   return (
     <div className="min-h-dvh pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">

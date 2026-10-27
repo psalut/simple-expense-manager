@@ -7,6 +7,9 @@ import { categories } from "@/db/categories-schema";
 import { expenses } from "@/db/expenses-schema";
 import { sharedSpaceMembers, sharedSpaces } from "@/db/shared-space-schema";
 import { user } from "@/db/auth-schema";
+import { resolveHousehold } from "@/lib/server/household";
+import { monthlyTotalCents } from "@/lib/expenses/monthly-total";
+import { canUseHousehold } from "@/lib/shared-spaces/household-policy";
 import {
   calculateGroupBalances,
   canEditExpense,
@@ -81,6 +84,12 @@ export async function listPersonalExpenses(
     amountCents: row.amountCents.toString(),
     currency: "ARS",
   }));
+}
+
+export async function getPersonalMonthlyTotal(userId: string, monthStart: string, nextMonthStart: string) {
+  const rows = await db.select({ id: expenses.id, userId: expenses.userId, expenseDate: expenses.expenseDate, amountCents: expenses.amountCents })
+    .from(expenses).where(personalExpenseScope(userId, monthStart, nextMonthStart));
+  return monthlyTotalCents(rows, userId, monthStart.slice(0, 7)).toString();
 }
 
 export async function getGroupExpenseOverview(
@@ -212,7 +221,7 @@ export async function updateExpense(
     }
 
     if (draft.sharedSpaceId) {
-      await lockSharedSpaceMembers(tx, userId, draft.sharedSpaceId);
+      await lockSharedSpaceMembers(tx, userId, draft.sharedSpaceId, snapshot.sharedSpaceId === draft.sharedSpaceId);
     }
 
     const categoryIds = [...new Set([snapshot.categoryId, draft.categoryId])].sort();
@@ -307,7 +316,12 @@ async function lockSharedSpaceMembers(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   userId: string,
   sharedSpaceId: string,
+  preserveHistorical = false,
 ) {
+  const household = await resolveHousehold(tx);
+  if (household.id !== sharedSpaceId && !preserveHistorical) {
+    throw new ExpenseError("Solo se pueden compartir gastos nuevos con Casa. La transición de los grupos históricos puede estar pendiente.");
+  }
   const [space] = await tx
     .select({ id: sharedSpaces.id, memberCount: sharedSpaces.memberCount })
     .from(sharedSpaces)
@@ -324,8 +338,7 @@ async function lockSharedSpaceMembers(
 
   if (
     space.memberCount !== 2 ||
-    members.length !== 2 ||
-    !members.some((member) => member.userId === userId)
+    !canUseHousehold(preserveHistorical ? sharedSpaceId : household.id, sharedSpaceId, members.map((member) => member.userId), userId)
   ) {
     throw new ExpenseError(
       "Para compartir un gasto, el grupo necesita exactamente dos integrantes.",

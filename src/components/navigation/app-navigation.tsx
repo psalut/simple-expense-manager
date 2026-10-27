@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReceiptText, Tags, UsersRound } from "lucide-react";
+import { Heart, ReceiptText, Tags } from "lucide-react";
 
 const destinations = [
   { href: "/", label: "Gastos", Icon: ReceiptText },
-  { href: "/groups", label: "Grupos", Icon: UsersRound },
+  { href: "/household", label: "Casa", Icon: Heart },
   { href: "/categories", label: "Categorías", Icon: Tags },
 ] as const;
 

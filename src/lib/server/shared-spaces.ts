@@ -1,7 +1,8 @@
 import "server-only";
 
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { resolveHousehold } from "@/lib/server/household";
 import { db } from "@/db";
 import { user } from "@/db/auth-schema";
 import {
@@ -111,16 +112,18 @@ export async function createSharedSpace(
   userId: string,
   rawName: unknown,
 ): Promise<void> {
-  const name = typeof rawName === "string" ? rawName.trim() : "";
-  if (!name || name.length > 80) {
-    throw new SharedSpaceError("El nombre del grupo debe tener entre 1 y 80 caracteres.");
+  if (rawName !== "Casa") {
+    throw new SharedSpaceError("La app solo admite el hogar Casa.");
   }
 
   await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(732619041)`);
+    const existing = await tx.select({ id: sharedSpaces.id }).from(sharedSpaces).limit(1);
+    if (existing.length) throw new SharedSpaceError("Casa ya existe o hay grupos históricos pendientes de transición.");
     const sharedSpaceId = randomUUID();
     await tx.insert(sharedSpaces).values({
       id: sharedSpaceId,
-      name,
+      name: "Casa",
       createdBy: userId,
     });
     await tx.insert(sharedSpaceMembers).values({
@@ -145,6 +148,9 @@ export async function createSharedSpaceInvitation(
   const expiresAt = new Date(Date.now() + INVITATION_LIFETIME_MS);
 
   await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(732619041)`);
+    const household = await resolveHousehold(tx);
+    if (household.id !== sharedSpaceId) throw new SharedSpaceError("Solo se puede invitar a la segunda persona de Casa.");
     const [membership] = await tx
       .select({
         sharedSpaceId: sharedSpaceMembers.sharedSpaceId,
@@ -171,6 +177,9 @@ export async function createSharedSpaceInvitation(
       throw new SharedSpaceError("Este grupo ya tiene dos integrantes.");
     }
 
+    // Replacement invalidates every earlier code, including historical invitations.
+    await tx.update(sharedSpaceInvitations).set({ acceptedAt: new Date() })
+      .where(and(eq(sharedSpaceInvitations.sharedSpaceId, sharedSpaceId), sql`${sharedSpaceInvitations.acceptedAt} is null`));
     await tx.insert(sharedSpaceInvitations).values({
       id: randomUUID(),
       sharedSpaceId,
@@ -196,6 +205,9 @@ export async function acceptSharedSpaceInvitation(
 
   try {
     await db.transaction(async (tx) => {
+      // One lock order for create/replace/accept prevents deadlocks and double consumption.
+      await tx.execute(sql`select pg_advisory_xact_lock(732619041)`);
+      const household = await resolveHousehold(tx);
       const [invitation] = await tx
         .select()
         .from(sharedSpaceInvitations)
@@ -207,6 +219,9 @@ export async function acceptSharedSpaceInvitation(
         throw new SharedSpaceError(
           "La invitación no existe, venció o ya fue utilizada.",
         );
+      }
+      if (!household.id || invitation.sharedSpaceId !== household.id) {
+        throw new SharedSpaceError("La invitación no corresponde a Casa o la transición sigue pendiente.");
       }
 
       const [space] = await tx

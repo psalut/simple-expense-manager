@@ -19,10 +19,11 @@ type Props = {
   currentUserId: string;
   account: Pick<AuthenticatedUserProfile, "name" | "email">;
   month: string;
+  monthlyTotal: string;
   today: string;
 };
 
-export function ExpensesList({ expenses, categories, groups, currentUserId, account, month, today }: Props) {
+export function ExpensesList({ expenses, categories, groups, currentUserId, account, month, monthlyTotal, today }: Props) {
   const router = useRouter();
   const [editor, setEditor] = useState<{ expense: PersonalExpenseView | null; key: number } | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -43,7 +44,7 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
 
   return (
     <>
-      <header className="space-y-3">
+      <header className="space-y-1 sm:space-y-3">
         <SectionHeading
           title="Gastos"
           account={account}
@@ -75,6 +76,7 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
           </Link>
         </nav>
       </header>
+      <p className="py-5 text-center text-3xl font-semibold tracking-tight tabular-nums [overflow-wrap:anywhere] sm:py-6">{formatArs(monthlyTotal)}</p>
 
       {feedback && <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-300" role="status">{feedback}</p>}
 
@@ -86,7 +88,7 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
           <div className="space-y-1">
             <h2 id="empty-expenses-heading" className="text-lg font-semibold">No hay gastos en este mes</h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              Cargá un gasto personal o compartilo con uno de tus grupos.
+              Cargá un gasto personal o compartilo en Casa.
             </p>
           </div>
           <Button
