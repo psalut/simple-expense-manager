@@ -46,7 +46,7 @@ Better Auth gestiona sesiones. El registro público está cerrado después de re
 
 ## 4. Registro de gastos
 
-Formulario reutilizado en Drawer móvil y Dialog de escritorio. Campos: importe positivo en ARS, detalle, categoría global activa y fecha. El importe acepta coma o punto para empezar a ingresar hasta dos decimales; no agrega separadores de miles ni completa centavos automáticamente. Desde Gastos, Compartido inicia apagado; desde Casa, inicia activado. No hay selector de hogar, grupo ni participantes.
+Formulario reutilizado en Drawer móvil y Dialog de escritorio. Campos: importe positivo en ARS, detalle, categoría global activa y fecha. El importe agrupa los miles con puntos mientras se escribe, acepta coma o punto para ingresar hasta dos decimales y muestra dos cifras decimales si se ingresan centavos (por ejemplo, `500000` → `500.000` y `1020.8` → `1.020,80`). Desde Gastos, Compartido inicia apagado; desde Casa, inicia activado. No hay selector de hogar, grupo ni participantes.
 
 Los gastos compartidos se reparten 50/50 entre los dos integrantes. Cuando el importe en centavos es impar, el centavo adicional corresponde al pagador. El pagador es el autor del gasto. Otros integrantes pueden consultar un gasto compartido en solo lectura, nunca editarlo o borrarlo.
 

@@ -25,7 +25,7 @@ export function FloatingCreateAction({ label, onClick }: Props) {
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-4 z-40 size-14 rounded-full shadow-lg md:hidden"
+      className="fixed bottom-[calc(5.25rem+var(--mobile-nav-safe-padding))] right-4 z-40 size-14 rounded-full shadow-lg md:hidden"
     >
       <Plus size={24} aria-hidden="true" />
     </Button>

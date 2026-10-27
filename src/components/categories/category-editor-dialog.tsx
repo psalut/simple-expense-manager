@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Drawer } from "@base-ui/react/drawer";
-import { X } from "lucide-react";
 import { createCategoryAction, updateCategoryAction } from "@/app/(app)/categories/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,7 +147,7 @@ export function CategoryEditorDialog({
             autoCapitalize="characters"
             placeholder="#2F6F66"
             aria-invalid={colorIsInvalid || undefined}
-            aria-describedby="category-color-help"
+            aria-describedby={colorIsInvalid ? "category-color-help" : undefined}
             className="min-h-11 max-w-36 rounded-xl px-3 font-mono text-sm"
           />
           <span
@@ -157,11 +156,11 @@ export function CategoryEditorDialog({
             style={{ backgroundColor: pickerColor }}
           />
         </div>
-        <p id="category-color-help" className="text-xs text-muted-foreground">
-          {colorIsInvalid
-            ? "Usá # seguido de seis caracteres hexadecimales."
-            : "Elegí una muestra o ingresá el código hexadecimal."}
-        </p>
+        {colorIsInvalid && (
+          <p id="category-color-help" className="text-xs text-muted-foreground">
+            Usá # seguido de seis caracteres hexadecimales.
+          </p>
+        )}
       </div>
 
       {error && <p className="text-sm text-destructive-foreground" role="alert">{error}</p>}
@@ -200,25 +199,9 @@ export function CategoryEditorDialog({
             <Drawer.Popup className="flex max-h-[min(92dvh,44rem)] w-full max-w-xl flex-col overflow-hidden overscroll-contain rounded-t-3xl border border-border bg-card text-card-foreground shadow-xl outline-none transition-transform duration-200 data-ending-style:translate-y-full data-starting-style:translate-y-full">
               <Drawer.Content className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-hidden px-5 pt-5 sm:px-6 sm:pt-6">
                 <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted-foreground/30" aria-hidden="true" />
-                <div className="flex shrink-0 items-start justify-between gap-4">
-                  <div>
-                    <Drawer.Title className="text-xl font-semibold">{title}</Drawer.Title>
-                    <Drawer.Description className="mt-1 text-sm text-muted-foreground">
-                      Las categorías y sus colores son visibles para todas las cuentas.
-                    </Drawer.Description>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-11 shrink-0"
-                    aria-label="Cerrar formulario"
-                    onClick={() => handleOpenChange(false)}
-                    disabled={isSaving}
-                  >
-                    <X aria-hidden="true" />
-                  </Button>
-                </div>
+                <Drawer.Title className="shrink-0 text-xl font-semibold">
+                  {title}
+                </Drawer.Title>
                 {form}
               </Drawer.Content>
             </Drawer.Popup>
@@ -233,25 +216,7 @@ export function CategoryEditorDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Popup className="fixed left-1/2 top-1/2 z-[51] max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-xl outline-none transition-[opacity,scale] duration-150 data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <Dialog.Title className="text-xl font-semibold">{title}</Dialog.Title>
-              <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-                Las categorías y sus colores son visibles para todas las cuentas.
-              </Dialog.Description>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-11 shrink-0"
-              aria-label="Cerrar formulario"
-              onClick={() => handleOpenChange(false)}
-              disabled={isSaving}
-            >
-              <X aria-hidden="true" />
-            </Button>
-          </div>
+          <Dialog.Title className="text-xl font-semibold">{title}</Dialog.Title>
           {form}
         </Dialog.Popup>
       </Dialog.Portal>

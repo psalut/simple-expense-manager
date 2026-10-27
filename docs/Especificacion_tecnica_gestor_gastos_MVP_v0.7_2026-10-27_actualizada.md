@@ -33,7 +33,7 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 - **Privado:** gasto visible únicamente para su autor/pagador en el historial personal.
 - **Compartido:** gasto único asociado a Casa, visible a ambos en Casa, editable/eliminable solo por su autor. En Gastos aparece solamente si lo registró quien consulta.
 - **Reparto:** 50/50 automático; con centavos impares, el pagador asume el centavo excedente. Balances derivados de gastos, no de movimientos separados.
-- **Moneda:** ARS, montos almacenados y calculados en centavos enteros (`BIGINT`/`BigInt`), sin redondeos con coma flotante. El campo de importe acepta coma o punto para empezar a ingresar hasta dos decimales y no agrega separadores de miles.
+- **Moneda:** ARS, montos almacenados y calculados en centavos enteros (`BIGINT`/`BigInt`), sin redondeos con coma flotante. El campo agrupa los miles con puntos en tiempo real y acepta coma o punto para ingresar hasta dos decimales; si se ingresa una parte decimal, muestra dos cifras (por ejemplo, `1020.8` → `1.020,80`).
 - **Total mensual personal:** suma exacta de los gastos del mes registrados/pagados por el usuario, privados y compartidos una sola vez.
 - **Categorías:** catálogo global existente; conserva nombre, descripción, color, archivado, restauración y eliminación con reemplazo cuando aplica. En `/categories`, el listado muestra nombre, color y estado; la descripción queda disponible al abrir la edición.
 

@@ -433,7 +433,8 @@ export function ExpenseEditorDialog({
               allowedDecimalSeparators={[",", "."]}
               decimalScale={2}
               allowNegative={false}
-              thousandSeparator={false}
+              thousandSeparator="."
+              fixedDecimalScale={/\.\d/.test(amount)}
               onValueChange={({ value }) => setAmount(value)}
               required
               placeholder="0,00"

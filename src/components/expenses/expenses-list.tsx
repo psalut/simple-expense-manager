@@ -127,8 +127,8 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
                               {expense.categoryIsArchived ? " · archivada" : ""}
                             </span>
                             {expense.sharedSpaceName && (
-                              <span className="inline-flex max-w-full items-center rounded-full bg-muted px-2 py-0.5 text-[11px] leading-4 text-foreground">
-                                Compartido · {expense.sharedSpaceName}
+                              <span className="inline-flex max-w-full items-center rounded-full bg-muted px-1.5 py-0 text-[10px] leading-4 text-foreground">
+                                Compartido
                               </span>
                             )}
                           </span>

@@ -28,7 +28,7 @@ export default async function AppLayout({
         email: session.user.email ?? "",
       }}
     >
-    <div className="min-h-dvh pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="min-h-dvh pb-[calc(4rem+var(--mobile-nav-safe-padding))] md:pb-0">
       <a
         href="#main-content"
         className="sr-only z-[60] rounded-md bg-background px-4 py-3 text-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"

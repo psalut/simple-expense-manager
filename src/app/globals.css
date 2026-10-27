@@ -83,6 +83,7 @@
   --border: color-mix(in srgb, var(--brand-ash-grey) 28%, white);
   --input: var(--brand-grey-olive);
   --ring: var(--brand-bordeaux);
+  --mobile-nav-safe-padding: max(0px, calc(env(safe-area-inset-bottom) - 1rem));
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

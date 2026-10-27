@@ -83,7 +83,7 @@ export function AppNavigation({
       {mode === "mobile" && !keyboardOpen && (
         <nav
           aria-label="Navegación principal"
-          className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card pb-[var(--mobile-nav-safe-padding)] md:hidden"
         >
           <ul className="mx-auto flex min-h-16 max-w-lg items-stretch px-2">
             {destinations.map(({ href, label, Icon }) => {
