@@ -20,7 +20,6 @@ export function CategoriesManager({
     <div className="space-y-6">
       <SectionHeading
         title="Categorías"
-        description="Un catálogo global para todos tus gastos."
         account={account}
       />
 

@@ -72,7 +72,6 @@ export function GroupDetail({
     <>
       <SectionHeading
         title={displayName}
-        description={`${space.members.length} de 2 integrantes`}
         account={account}
       />
 

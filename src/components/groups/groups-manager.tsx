@@ -165,7 +165,6 @@ export function GroupsManager({
     <>
       <SectionHeading
         title="Grupos"
-        description="Hasta dos integrantes por grupo."
         account={account}
       />
 
