@@ -1,19 +1,19 @@
 # Gestor de gastos personales y compartidos — Especificación técnica
 
-**Versión:** 0.7 · **Actualizado:** 25 de octubre de 2026 · **Estado:** dominio implementado y probado; PWA/despliegue pendientes
+**Versión:** 0.7 · **Actualizado:** 27 de octubre de 2026 · **Estado:** primer despliegue en Vercel realizado; PWA pendiente
 **Documento complementario:** `Idea_producto_gestor_gastos_v0.7.md`
 
 ## 0. Estado real y alcance de esta versión
 
-**Implementado según informes del agente y verificaciones del usuario (25/10/2026):** Next.js 16.4.3, TypeScript strict, pnpm, Tailwind 4, shadcn/ui Base UI + Rhea, Better Auth, Drizzle y PostgreSQL en Neon; varios grupos por usuario con máximo dos integrantes por grupo; invitaciones; catálogo global editable de categorías con color; gastos privados y compartidos, reparto fijo 50/50 sin `expense_shares`, listados y balances. Se implementó Jev mediante la API HTTP directa de TypeSafe AI. No se confirmó auditoría independiente de todo el código.
+**Implementado según informes del agente y verificaciones del usuario (27/10/2026):** Next.js 16.4.3, TypeScript strict, pnpm, Tailwind 4, shadcn/ui Base UI + Rhea, Better Auth, Drizzle y PostgreSQL en Neon; varios grupos por usuario con máximo dos integrantes por grupo; invitaciones; catálogo global editable de categorías con color; gastos privados y compartidos, reparto fijo 50/50 sin `expense_shares`, listados y balances. Se implementó Jev mediante la API HTTP directa de TypeSafe AI. No se confirmó auditoría independiente de todo el código.
 
 **Base de desarrollo reiniciada:** el usuario eliminó las tablas anteriores y confirmó haber aplicado el nuevo baseline `drizzle/0000_initial_v07.sql` y el seed idempotente `scripts/seed-categories.mjs` sobre Neon. En E2E posteriores se verificaron la conexión y las tablas del esquema v0.7. Las migraciones anteriores ya no forman parte del nuevo historial del repositorio. **No volver a ejecutar el reset** sobre la base ahora poblada.
 
 **Pruebas:** la reejecución en navegador informó inicialmente 23 PASS, 1 FAIL, 3 BLOCKED y 2 NOT RUN de 29 casos. El usuario comprobó manualmente que la edición de fecha (E2E-12), el ciclo privado ↔ compartido (E2E-20), la sugerencia Jev con HTTP 200 (E2E-28) y la experiencia móvil (E2E-27) funcionan. El supuesto fallo de fecha queda **no reproducido en la prueba manual posterior**; no se da por corregido en código sin una investigación específica. E2E-24 aprobó **9/9 pruebas de integración con PostgreSQL real** sobre permisos de Server Actions y preservación de balances/datos; no cubre POST HTTP real/CSRF/origin de Next.js. **Queda diferida** la prueba E2E-26 de pérdida de conexión y la definición precisa de la experiencia de reintento. Afinar la calidad de sugerencias de Jev queda como mejora futura.
 
-**Seguridad y Git:** un agente informó que una salida de herramienta mostró secretos de `.env.local`; se recomendó rotar credenciales de Neon y `BETTER_AUTH_SECRET` (y TypeSafe si correspondiera). **La rotación no está confirmada**. La rama de trabajo sigue siendo `feat/expenses-and-balances`; al último estado informado había cambios en staging, **sin commit ni merge confirmados**. Mantener solamente los dos documentos de producto/técnica en `docs/`, junto con código y pruebas reproducibles; retirar reportes y evidencias temporales E2E del repositorio.
+**Seguridad y Git:** durante las pruebas se reportó exposición de secretos de `.env.local` en una salida de herramienta. Se recomendó rotar credenciales de Neon y `BETTER_AUTH_SECRET` (y TypeSafe si correspondía); **la rotación no fue confirmada**. El usuario trabajó en `fix/mobile-ui-refinement` y después en su carpeta habitual; reportó que el refinamiento anterior ya estaba confirmado. El estado final de commits, merge y `git push` **no fue verificado de forma independiente**, aunque Vercel ya importó `main` desde GitHub. Mantener en `docs/` únicamente esta documentación técnica y la funcional, junto con tests reproducibles en código (sin reportes efímeros).
 
-**Pendiente de MVP:** comportamiento ante fallos de red, instalación PWA online, pruebas finales y despliegue/piloto; pruebas HTTP de protocolo/CSRF pendientes si se incorporan al plan de seguridad.
+**Pendiente de MVP:** comportamiento ante fallos de red, instalación PWA online y validación funcional del sitio desplegado en dispositivos reales; pruebas HTTP de protocolo/CSRF pendientes si se incorporan al plan de seguridad. **Vercel:** el usuario confirmó un primer deploy realizado el 27/10/2026; todavía no se comunicó la URL definitiva ni un recorrido funcional de producción.
 
 ## 1. Stack y arquitectura
 
@@ -26,7 +26,7 @@
 | Persistencia | Neon PostgreSQL + Drizzle ORM/Kit, migraciones SQL versionadas |
 | Mutaciones | Server Actions protegidas, reglas concentradas en servicios de dominio |
 | IA | TypeSafe AI **Jev** mediante API HTTP directa `POST https://api.typesafe.ai/v1/systemone`, modelo `jev-latest`, `fetch` en servidor y `TYPESAFE_API_KEY`; sin AI Gateway ni SDK `ai` |
-| PWA/hosting | Manifest + HTTPS, sin offline; Vercel en fase posterior |
+| PWA/hosting | Primer deploy en Vercel realizado; PWA/manifest e instalación aún pendientes; sin offline |
 
 No agregar ORM paralelo, backend separado, Redis, colas, sockets, analítica, adjuntos, motor contable ni sincronización offline.
 
@@ -149,7 +149,7 @@ Ejemplo: $100,01 = 10.001 centavos → pagador 5.001; otro miembro 5.000. No hac
 - Se generó un nuevo baseline único `drizzle/0000_initial_v07.sql`, con snapshot/journal Drizzle nuevos; se retiraron los SQL históricos `0000`, `0001` y `0002` del prototipo, sin trasladar `expense_shares` al esquema v0.7.
 - El usuario confirmó haber ejecutado `pnpm exec drizzle-kit migrate` y `node scripts/seed-categories.mjs`. Pruebas posteriores en navegador y PostgreSQL real confirmaron funcionamiento sobre esquema v0.7. El seed es idempotente y carga categorías editables.
 - **No reiniciar ni borrar nuevamente las tablas**: ahora existen cuentas, grupos, categorías y gastos creados en los ensayos; toda futura modificación debe ser una migración incremental versionada.
-- Precaución operativa: antes de desplegar, establecer separación de entornos y copias de seguridad. Nunca commitear `.env.local`; confirmar rotación de los secretos expuestos antes del despliegue.
+- Precaución operativa: el primer deploy ya se hizo; revisar separación de entornos, copias de seguridad y credenciales rotadas antes de ampliar el acceso. Nunca commitear `.env.local` ni ejecutar migraciones automáticamente durante el build.
 
 ## 8. Pruebas y aceptación — ejecución y pendientes
 
@@ -166,22 +166,23 @@ Ejemplo: $100,01 = 10.001 centavos → pagador 5.001; otro miembro 5.000. No hac
 
 **Cobertura que conviene preservar:** tests de permisos en `src/lib/server/expenses.e2e24.integration.test.ts`; balances 50/50 par/impar, grupos aislados, dobles invitaciones, categorías históricas y prioridad manual frente a IA. No incluir informes E2E efímeros ni capturas de prueba en Git; conservar únicamente las dos especificaciones y el código de pruebas reproducibles.
 
-**Antes del commit:** confirmar rotación de credenciales expuestas; ejecutar `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test`, `pnpm build`, `git diff --cached --check` y revisar staging/`.env.example`.
+**Refinamiento UI (octubre 2026):** el agente reportó implementación del encabezado móvil compacto, acceso a Cuenta junto a los títulos, selectores adaptados a móvil, calendario amplio dentro del Drawer, indicación de hoy, reorganización de campos (Compartido al final), scroll/focus rings y estilos unificados. Las inspecciones visuales en 360/375/390 px y escritorio resultaron favorables en las iteraciones finales; no se documentó prueba física de safe-area ni teclado iOS/Android. Se corrigió la discrepancia entre llamadas que pasaban `description` y el contrato de `SectionHeading` quitando esa prop, conforme a la decisión del usuario de no mostrar subtítulos en los encabezados. `react-day-picker` fue incorporado. En la carpeta habitual `pnpm lint` pasó y `pnpm test` aprobó 38 tests unitarios; la suite completa falló inicialmente por falta de `DATABASE_URL` al cargar la prueba de integración E2E-24. El usuario informó haber separado la ejecución unitaria de la integración; **no se aportó todavía el log final de una ejecución posterior**. No afirmar que el último `pnpm build` y `tsc` finales estén validados sin salida de esos comandos.
+
+**Primer deploy (27/10/2026):** el usuario confirmó que el proyecto `simple-expense-manager` fue desplegado desde GitHub (`main`) en Vercel mediante la interfaz web. No se registró aquí la URL final, el resultado de pruebas de autenticación/cookies, el funcionamiento de Neon/Jev en producción ni la configuración exacta de variables. No ejecutar migraciones o seed como parte del build sin plan expreso.
 
 ## 9. Próximas entregas y Git
 
-1. **Realizado:** refactorización completa a grupos de máximo dos, categorías globales con color y gastos 50/50; reset inicial de Neon y seed; Jev vía TypeSafe directo; validación funcional principal y de permisos de servidor.
-2. **Antes de confirmar Git:** corregir formato y estado de estos documentos; limpiar reportes de E2E temporales del staging; revisar secretos/rotación; pasar validaciones finales.
-3. **Posterior:** definir y probar fallos de conexión (E2E-26), completar controles HTTP/CSRF si se decide, mejorar sugerencias Jev a partir del piloto.
-4. **Pendiente del MVP:** PWA instalable online, pruebas finales de instalación/despliegue y piloto.
+1. **Realizado:** dominio v0.7 con grupos de dos, categorías globales, gastos 50/50 y Jev directo; reset inicial de Neon y seed; tests principales y refinamiento de UI móvil.
+2. **Realizado según confirmación del usuario (27/10/2026):** primer deploy del proyecto en Vercel desde el repositorio GitHub, rama `main`.
+3. **Siguiente:** validar el sitio desplegado con dos cuentas y dispositivos reales: login/logout, cookies Better Auth, gasto personal y compartido, invitaciones, balance, fecha, catálogos y sugerencia TypeSafe. Registrar URL/dominio definitivo sin secretos.
+4. **Pendiente:** revisar rotación de credenciales y separación desarrollo/producción; definir errores y reintentos de red (E2E-26); implementar PWA online; mejorar Jev con datos del piloto y evaluar pruebas HTTP/CSRF de Next.
 
-**Git:** rama `feat/expenses-and-balances`, cambios staged al último reporte del usuario; **commit y merge aún no confirmados**. Rama por funcionalidad, Conventional Commits en inglés y merge directo a `main` sin PR. Commit sugerido tras revisión: `refactor: simplify expense sharing and global categories`.
-
+**Git:** ramas por funcionalidad, Conventional Commits en inglés y merges directos a `main` sin PR. El deploy está confirmado por el usuario, pero el hash concreto del commit publicado y el estado final del worktree no están consignados en esta documentación.
 ## 10. Fuera del MVP y definición de terminado
 
 No habrá N participantes, `expense_shares`, selección de beneficiarios, repartos configurables, liquidaciones, transferencias, estadísticas, presupuestos, multi-moneda, adjuntos, OCR, asistente conversacional, taxonomías por usuario/grupo, offline ni sincronización en segundo plano.
 
-**Terminado cuando:** una persona registra gastos propios; puede compartirlos 50/50 en cualquiera de sus varios grupos completos de dos; el otro integrante los ve solo dentro del grupo; no puede editarlos; balances acumulados son exactos; categorías globales con color se administran sin filtraciones; Jev sugiere sin imponer; móvil funciona; base/migraciones nuevas son reproducibles y PWA es instalable online. **El dominio v0.7 está implementado y validado en sus flujos principales; la definición completa de terminado sigue pendiente por PWA y la gestión de fallos de conexión.**
+**Terminado cuando:** una persona registra gastos propios; puede compartirlos 50/50 en cualquiera de sus varios grupos completos de dos; el otro integrante los ve solo dentro del grupo; no puede editarlos; balances acumulados son exactos; categorías globales con color se administran sin filtraciones; Jev sugiere sin imponer; móvil funciona; base/migraciones nuevas son reproducibles y PWA es instalable online. **El dominio v0.7 está implementado y el primer deploy está realizado; la definición completa de terminado sigue pendiente de validación en producción, PWA y gestión de fallos de conexión.**
 
 ## 11. Referencias
 

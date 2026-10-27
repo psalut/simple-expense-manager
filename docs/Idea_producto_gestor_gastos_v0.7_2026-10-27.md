@@ -1,6 +1,6 @@
 # Gestor de gastos personales y compartidos — Idea de producto
 
-**Versión:** 0.7 · **Actualizado:** 25 de octubre de 2026 · **Estado:** dominio implementado y probado; PWA y conectividad pendientes
+**Versión:** 0.7 · **Actualizado:** 27 de octubre de 2026 · **Estado:** primera publicación en Vercel realizada; PWA pendiente
 **Documento complementario:** `Especificacion_tecnica_gestor_gastos_MVP_v0.7.md`
 
 ## Estado real y cambio de rumbo
@@ -9,7 +9,11 @@ La simplificación v0.7 **ya fue implementada** según los informes del agente: 
 
 **Pruebas funcionales:** la reejecución automatizada registró 23 PASS / 1 FAIL / 3 BLOCKED / 2 NOT RUN. Luego el usuario volvió a probar satisfactoriamente fecha de edición, ciclo privado/compartido, sugerencias de Jev con HTTP 200 y experiencia móvil. El fallo de fecha del reporte no se reprodujo manualmente (sin que conste una corrección de código). La seguridad de Server Actions pasó **9/9 pruebas con PostgreSQL real** y sesiones de tres usuarios; falta verificar específicamente el transporte HTTP/CSRF/origin de Next.js.
 
-**Pendientes conocidos:** decidir y probar el comportamiento ante pérdida de conexión (E2E-26), afinar más adelante las sugerencias de Jev y completar PWA/despliegue. Una ejecución del agente mostró secretos del entorno en una salida de herramienta: se recomendó rotar credenciales de Neon y Better Auth (y TypeSafe si estuvo implicada); **la rotación no fue confirmada**. El trabajo continúa en `feat/expenses-and-balances`, con staging preparado, pero sin commit/merge confirmados.
+**Evolución de UI (26–27/10/2026):** se refinó la experiencia móvil: encabezado global oculto en móvil, acceso a Cuenta junto al título, inputs y selectores coherentes con Rhea, calendario ampliado con selección de hoy y acciones Cancelar/Aplicar, switch Compartido al final, scroll y foco más cuidados. Los agentes reportaron pruebas visuales de navegador a 360/375/390 px y escritorio, pero no un ensayo físico completo en iOS/Android.
+
+**Primer despliegue:** el usuario confirmó el **27 de octubre de 2026** que realizó el primer deploy en Vercel desde GitHub (`main`). No se proporcionó aún la URL definitiva ni resultados de una ronda de uso sobre producción; no se asume validada la autenticación, la conexión a Neon o Jev desde el dominio publicado hasta probarlos.
+
+**Pendientes conocidos:** definir/probar pérdida de conexión y reintentos (E2E-26), afinar Jev con el uso, validar producción con dos cuentas, completar PWA e instalación en dispositivos. La exposición previa de secretos de `.env.local` motivó recomendación de rotación; **no está confirmada**. El último hash de commit, merge y estado del worktree no constan en este seguimiento.
 
 Esta versión reemplaza definitivamente la arquitectura N-personas y categorías por usuario/grupo de v0.6. En `docs/` solo se conservarán este documento y la especificación técnica; los reportes temporales E2E se eliminan del repositorio, pero se conservan las pruebas automatizadas reproducibles.
 
@@ -126,10 +130,10 @@ Terceros integrantes, selección de participantes, repartos distintos de 50/50, 
 
 ## 12. Estado de entrega y siguientes pasos
 
-- **Completado:** simplificación de arquitectura y pantallas; categorías globales editables con color; grupos de máximo dos; gastos privados/compartidos y balances 50/50; nuevo baseline/seed de Neon; Jev directo con TypeSafe.
-- **Validado:** flujos reales con varias cuentas, invitaciones, permisos de visualización, categorías archivadas/reasignación, redondeo, cambios de grupo y balance; pruebas manuales satisfactorias de fecha, ciclo compartido, Jev y móvil; autorización de Server Actions 9/9 contra PostgreSQL.
-- **Pendiente:** diseñar y verificar errores/reintentos ante pérdida de red, instalar/verificar PWA, desplegar/pilotear y calibrar con el tiempo la calidad de Jev; quedó sin cubrir transporte HTTP/CSRF/origin de Server Actions.
-- **Seguridad:** confirmar rotación de claves expuestas en la salida de herramienta antes del despliegue.
-- **Git:** mantener solo estos dos documentos permanentes (sin reportes temporales), más el código y tests; revisar el staging, validar y hacer commit Conventional Commits en inglés y merge directo a `main` sin PR. No hay commit/merge confirmado.
-
+- **Completado:** arquitectura simplificada, grupos de máximo dos, categorías globales editables con color, gastos privados/compartidos, balances 50/50, baseline/seed de Neon y Jev directo a TypeSafe.
+- **Validado antes de publicar:** flujos de categorías, grupos, invitaciones, edición, reparto y privacidad; 9/9 pruebas de autorización contra PostgreSQL real; verificaciones manuales de fecha, Jev y experiencia móvil. El módulo de UI se refinó en iteraciones adicionales.
+- **Desplegado:** primer deploy en Vercel confirmado por el usuario el 27/10/2026, importando la rama `main` desde GitHub. **Aún no hay constancia de un smoke test productivo ni URL final registrada.**
+- **Próximo paso:** pruebas desde el dominio de producción y un celular real, con dos cuentas; comprobar login/cookies, Neon, Jev, gastos y balances. Revisar rotación de secretos y separación de entornos antes de extender el piloto.
+- **Pendiente posterior:** PWA instalable online, comportamiento de error/reintento sin conexión (E2E-26), calibración futura de Jev y eventual prueba HTTP/CSRF de Server Actions.
+- **Documentación y Git:** mantener únicamente estos dos `.md` de seguimiento en `docs/` y tests reproducibles en código, sin reportes efímeros; ramas por funcionalidad, commits Conventional Commits en inglés y merge directo a `main` sin PR.
 > **Principio rector:** una carga por gasto, una categoría global con color, varios grupos pero siempre de dos, reparto 50/50 y IA que ahorra toques.
