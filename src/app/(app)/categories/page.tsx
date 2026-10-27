@@ -1,9 +1,9 @@
 import { CategoriesManager } from "@/components/categories/categories-manager";
 import { listCategories } from "@/lib/server/categories";
-import { getAuthenticatedUserId } from "@/lib/server/authenticated-user";
+import { getAuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 
 export default async function CategoriesPage() {
-  await getAuthenticatedUserId();
+  const user = await getAuthenticatedUserProfile();
   const categories = await listCategories();
   const replacementCategories = categories.filter(
     (category) => !category.isArchived,
@@ -14,6 +14,7 @@ export default async function CategoriesPage() {
       <CategoriesManager
         categories={categories}
         replacementCategories={replacementCategories}
+        account={user}
       />
     </main>
   );

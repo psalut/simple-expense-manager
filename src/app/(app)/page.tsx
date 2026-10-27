@@ -1,6 +1,6 @@
 import { ExpensesList } from "@/components/expenses/expenses-list";
 import { listCategories } from "@/lib/server/categories";
-import { getAuthenticatedUserId } from "@/lib/server/authenticated-user";
+import { getAuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 import { listPersonalExpenses } from "@/lib/server/expenses";
 import { getSharedSpacesForUser } from "@/lib/server/shared-spaces";
 import { getSharedSpaceDisplayName } from "@/lib/shared-spaces/display-name";
@@ -15,10 +15,11 @@ export default async function HomePage({
 }: {
   searchParams: Promise<{ month?: string | string[] }>;
 }) {
-  const [userId, params] = await Promise.all([
-    getAuthenticatedUserId(),
+  const [user, params] = await Promise.all([
+    getAuthenticatedUserProfile(),
     searchParams,
   ]);
+  const userId = user.id;
   const today = currentDateInBuenosAires();
   const month = normalizeExpenseMonth(params.month, today);
   const nextMonth = shiftMonth(month, 1);
@@ -40,6 +41,7 @@ export default async function HomePage({
         categories={categories}
         groups={groups}
         currentUserId={userId}
+        account={user}
         month={month}
         today={today}
       />

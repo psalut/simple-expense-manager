@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseEditorDialog, type ExpenseGroupOption } from "@/components/expenses/expense-editor-dialog";
+import { SectionHeading } from "@/components/navigation/section-heading";
+import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 import type { CategoryView } from "@/lib/categories/types";
 import { formatArs, formatExpenseDate, formatMonth, shiftMonth } from "@/lib/expenses/format";
 import type { PersonalExpenseView } from "@/lib/server/expenses";
@@ -15,11 +17,12 @@ type Props = {
   categories: CategoryView[];
   groups: ExpenseGroupOption[];
   currentUserId: string;
+  account: Pick<AuthenticatedUserProfile, "name" | "email">;
   month: string;
   today: string;
 };
 
-export function ExpensesList({ expenses, categories, groups, currentUserId, month, today }: Props) {
+export function ExpensesList({ expenses, categories, groups, currentUserId, account, month, today }: Props) {
   const router = useRouter();
   const [editor, setEditor] = useState<{ expense: PersonalExpenseView | null; key: number } | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -40,21 +43,19 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, mont
 
   return (
     <>
-      <header className="space-y-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Gastos</h1>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Tus gastos personales y los que compartiste.
-            </p>
-          </div>
-          <div className="hidden md:block">
-            <Button type="button" className="min-h-11 gap-2" onClick={() => openEditor(null)}>
-              <Plus aria-hidden="true" />
-              Agregar gasto
-            </Button>
-          </div>
-        </div>
+      <header className="space-y-3">
+        <SectionHeading
+          title="Gastos"
+          account={account}
+          actions={
+            <div className="hidden md:block">
+              <Button type="button" className="min-h-11 gap-2" onClick={() => openEditor(null)}>
+                <Plus aria-hidden="true" />
+                Agregar gasto
+              </Button>
+            </div>
+          }
+        />
 
         <nav aria-label="Navegar por mes" className="flex min-h-12 items-center justify-between border-y border-border py-1">
           <Link
@@ -85,9 +86,17 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, mont
           <div className="space-y-1">
             <h2 id="empty-expenses-heading" className="text-lg font-semibold">No hay gastos en este mes</h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              Cargá lo que pagaste. Si querés, podés compartirlo con uno de tus grupos.
+              Cargá un gasto personal o compartilo con uno de tus grupos.
             </p>
           </div>
+          <Button
+            type="button"
+            className="min-h-11 gap-2"
+            onClick={() => openEditor(null)}
+          >
+            <Plus aria-hidden="true" />
+            Agregar gasto
+          </Button>
         </section>
       ) : (
         <div className="mt-6 space-y-7">
@@ -103,7 +112,7 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, mont
                       type="button"
                       onClick={() => openEditor(expense)}
                       aria-label={"Editar " + expense.description + ", " + formatArs(expense.amountCents)}
-                      className="flex min-h-[4.5rem] w-full items-center justify-between gap-4 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/30"
+                      className="flex min-h-16 w-full items-center justify-between gap-3 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/30"
                     >
                       <span className="flex min-w-0 flex-1 items-center gap-3">
                         <span
@@ -112,23 +121,24 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, mont
                           style={{ backgroundColor: expense.categoryColor }}
                         />
                         <span className="min-w-0 flex-1">
-                          <span className="block break-words font-medium">{expense.description}</span>
-                          <span className="mt-1 block truncate text-sm text-muted-foreground">
-                            {expense.categoryName}
-                            {expense.categoryIsArchived ? " · archivada" : ""}
+                          <span className="block line-clamp-2 break-words font-medium leading-5">
+                            {expense.description}
+                          </span>
+                          <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                            <span>
+                              {expense.categoryName}
+                              {expense.categoryIsArchived ? " · archivada" : ""}
+                            </span>
                             {expense.sharedSpaceName && (
-                              <span className="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground">
+                              <span className="inline-flex max-w-full items-center rounded-full bg-muted px-2 py-0.5 text-[11px] leading-4 text-foreground">
                                 Compartido · {expense.sharedSpaceName}
                               </span>
                             )}
                           </span>
                         </span>
                       </span>
-                      <span className="shrink-0 text-right">
+                      <span className="min-w-[7.5rem] shrink-0 text-right">
                         <span className="block font-medium tabular-nums">{formatArs(expense.amountCents)}</span>
-                        <span className="mt-1 block text-xs capitalize text-muted-foreground">
-                          {formatExpenseDate(expense.expenseDate, today)}
-                        </span>
                       </span>
                     </button>
                   </li>

@@ -11,11 +11,17 @@ const destinations = [
   { href: "/categories", label: "Categorías", Icon: Tags },
 ] as const;
 
-export function AppNavigation() {
+export function AppNavigation({
+  mode,
+}: {
+  mode: "desktop" | "mobile";
+}) {
   const pathname = usePathname();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useEffect(() => {
+    if (mode === "desktop") return;
+
     const isTextEntry = (target: EventTarget | null) =>
       target instanceof HTMLElement &&
       target.matches(
@@ -48,31 +54,33 @@ export function AppNavigation() {
       window.removeEventListener("resize", syncKeyboardState);
       viewport?.removeEventListener("resize", syncKeyboardState);
     };
-  }, []);
+  }, [mode]);
 
   return (
     <>
-      <nav
-        aria-label="Navegación principal"
-        className="hidden items-center gap-1 md:flex"
-      >
-        {destinations.map(({ href, label }) => {
-          const active = isDestinationActive(pathname, href);
+      {mode === "desktop" && (
+        <nav
+          aria-label="Navegación principal"
+          className="hidden items-center gap-1 md:flex"
+        >
+          {destinations.map(({ href, label }) => {
+            const active = isDestinationActive(pathname, href);
 
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
-            >
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
-      {!keyboardOpen && (
+      {mode === "mobile" && !keyboardOpen && (
         <nav
           aria-label="Navegación principal"
           className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"

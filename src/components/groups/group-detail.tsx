@@ -5,6 +5,7 @@ import { Copy, Link2, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SectionHeading } from "@/components/navigation/section-heading";
 import { createSharedSpaceInvitationAction } from "@/app/(app)/groups/actions";
 import { GroupExpenses } from "@/components/expenses/group-expenses";
 import { callServerAction } from "@/lib/action-result";
@@ -12,6 +13,7 @@ import type { SharedSpaceOverview } from "@/lib/shared-spaces/types";
 import type { CategoryView } from "@/lib/categories/types";
 import type { ExpenseGroupOption } from "@/components/expenses/expense-editor-dialog";
 import type { GroupBalanceView, GroupExpenseView } from "@/lib/server/expenses";
+import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 
 export function GroupDetail({
   space,
@@ -22,6 +24,7 @@ export function GroupDetail({
   expenses,
   balances,
   today,
+  account,
 }: {
   space: SharedSpaceOverview;
   displayName: string;
@@ -31,6 +34,7 @@ export function GroupDetail({
   expenses: GroupExpenseView[];
   balances: GroupBalanceView[];
   today: string;
+  account: Pick<AuthenticatedUserProfile, "name" | "email">;
 }) {
   const [error, setError] = useState("");
   const [code, setCode] = useState("");
@@ -66,14 +70,11 @@ export function GroupDetail({
 
   return (
     <>
-      <header className="space-y-2">
-        <h1 className="break-words text-3xl font-semibold tracking-tight">
-          {displayName}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {space.members.length} de 2 integrantes
-        </p>
-      </header>
+      <SectionHeading
+        title={displayName}
+        description={`${space.members.length} de 2 integrantes`}
+        account={account}
+      />
 
       <GroupExpenses
         groupId={space.id}
