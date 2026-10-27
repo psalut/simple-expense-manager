@@ -33,7 +33,7 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 - **Privado:** gasto visible únicamente para su autor/pagador en el historial personal.
 - **Compartido:** gasto único asociado a Casa, visible a ambos en Casa, editable/eliminable solo por su autor. En Gastos aparece solamente si lo registró quien consulta.
 - **Reparto:** 50/50 automático; con centavos impares, el pagador asume el centavo excedente. Balances derivados de gastos, no de movimientos separados.
-- **Moneda:** ARS, montos almacenados y calculados en centavos enteros (`BIGINT`/`BigInt`), sin redondeos con coma flotante.
+- **Moneda:** ARS, montos almacenados y calculados en centavos enteros (`BIGINT`/`BigInt`), sin redondeos con coma flotante. El campo de importe acepta coma o punto para empezar a ingresar hasta dos decimales y no agrega separadores de miles.
 - **Total mensual personal:** suma exacta de los gastos del mes registrados/pagados por el usuario, privados y compartidos una sola vez.
 - **Categorías:** catálogo global existente; conserva nombre, descripción, color, archivado, restauración y eliminación con reemplazo cuando aplica. En `/categories`, el listado muestra nombre, color y estado; la descripción queda disponible al abrir la edición.
 
@@ -41,7 +41,7 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 
 - Navegación inferior: **Gastos**, **Casa** (ícono corazón), **Categorías**.
 - `/`: lista personal filtrada por mes; selector mensual; solo el importe del total mensual, centrado bajo el mes; header compacto; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
-- `/household`: selector mensual y gastos compartidos del mes, agrupados por día y con el pagador identificado; sin título interno para la lista, bloque de balance, desglose ni lista de integrantes; alta con Compartido activado desde el encabezado en escritorio y un botón flotante **+** en móvil.
+- `/household`: selector mensual y total del mes de los gastos compartidos de ambos integrantes, centrado bajo el mes como en Gastos; lista agrupada por día y con el pagador identificado; sin título interno para la lista, bloque de balance, desglose ni lista de integrantes; alta con Compartido activado desde el encabezado en escritorio y un botón flotante **+** en móvil.
 - `/categories`: administración del catálogo global; el listado muestra nombre, color y estado, y la descripción se consulta al abrir la edición de una categoría. Sin título interno «Catálogo global»; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
 - Drawer en móvil / Dialog en escritorio, calendario amplio, fecha con TZ coherente en Buenos Aires, zonas táctiles adecuadas y áreas seguras en modo PWA.
 - Las rutas heredadas de grupos no forman parte de la navegación principal; sus redirecciones/comportamiento deben respetar la implementación actual y la autorización.

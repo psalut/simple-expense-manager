@@ -66,6 +66,10 @@ export function GroupExpenses({
   const visibleExpenses = month
     ? expenses.filter((expense) => expense.expenseDate.slice(0, 7) === month)
     : expenses;
+  const monthlyTotal = visibleExpenses.reduce(
+    (total, expense) => total + BigInt(expense.amountCents),
+    0n,
+  );
   const expensesByDate = new Map<string, GroupExpenseView[]>();
 
   for (const expense of visibleExpenses) {
@@ -167,9 +171,12 @@ export function GroupExpenses({
             >
               <ChevronLeft aria-hidden="true" />
             </Link>
-            <p className="min-w-0 flex-1 text-center font-medium">
-              {formatMonth(month)}
-            </p>
+            <div className="min-w-0 flex-1 text-center leading-5">
+              <p className="font-medium">{formatMonth(month)}</p>
+              <p className="text-sm font-medium tabular-nums [overflow-wrap:anywhere]">
+                {formatArs(monthlyTotal)}
+              </p>
+            </div>
             <Link
               href={"/household?month=" + shiftMonth(month, 1)}
               aria-label="Mes siguiente"

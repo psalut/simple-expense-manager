@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog } from "@base-ui/react/dialog";
 import { Drawer } from "@base-ui/react/drawer";
+import { NumericFormat } from "react-number-format";
 import {
   createExpenseAction,
   deleteExpenseAction,
@@ -18,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select";
 import type { CategoryView } from "@/lib/categories/types";
-import { amountInputToCents, splitAmountCents } from "@/lib/expenses/policy";
+import { splitAmountCents } from "@/lib/expenses/policy";
 import { shouldApplyAutomaticSuggestion } from "@/lib/categories/suggestion-policy";
 import { formatArs } from "@/lib/expenses/format";
 import type {
@@ -88,7 +89,6 @@ export function ExpenseEditorDialog({
   const [amount, setAmount] = useState(
     initialExpense ? centsToInput(initialExpense.amountCents) : "",
   );
-  const [amountFocused, setAmountFocused] = useState(false);
   const [expenseDate, setExpenseDate] = useState(
     initialExpense?.expenseDate ?? today,
   );
@@ -420,16 +420,21 @@ export function ExpenseEditorDialog({
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xl font-medium text-muted-foreground">
               $
             </span>
-            <Input
+            <NumericFormat
               id="expense-amount"
               name="amount"
+              customInput={Input}
               type="text"
               inputMode="decimal"
               autoComplete="off"
-              value={amountFocused ? amount : formatAmountInput(amount)}
-              onFocus={() => setAmountFocused(true)}
-              onChange={(event) => setAmount(event.target.value)}
-              onBlur={() => setAmountFocused(false)}
+              value={amount}
+              valueIsNumericString
+              decimalSeparator=","
+              allowedDecimalSeparators={[",", "."]}
+              decimalScale={2}
+              allowNegative={false}
+              thousandSeparator={false}
+              onValueChange={({ value }) => setAmount(value)}
               required
               placeholder="0,00"
               aria-describedby="expense-amount-help"
@@ -437,7 +442,7 @@ export function ExpenseEditorDialog({
             />
           </div>
           <p id="expense-amount-help" className="sr-only">
-            Importe en pesos argentinos.
+            Importe en pesos argentinos. Ingresá coma o punto para escribir centavos.
           </p>
         </div>
 
@@ -859,14 +864,7 @@ function centsToInput(cents: string): string {
   const value = BigInt(cents);
   const whole = (value / 100n).toString();
   const fraction = (value % 100n).toString().padStart(2, "0");
-  return whole + "," + fraction;
-}
-
-function formatAmountInput(value: string): string {
-  const cents = amountInputToCents(value);
-  return cents === null
-    ? value
-    : formatArs(cents).replace("$", "").trimStart();
+  return whole + "." + fraction;
 }
 
 function formatDateOnly(date: string): string {

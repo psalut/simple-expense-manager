@@ -30,7 +30,7 @@ La refactorización a un único hogar y la implementación PWA fueron confirmada
 ### Casa (`/household`)
 
 - Acceso directo desde la pestaña **Casa**, con ícono de corazón; no hay listado ni selector de grupos.
-- Selector mensual y gastos compartidos del mes agrupados por día, con identificación de quién pagó cada gasto.
+- Selector mensual y total de gastos compartidos de ambos integrantes, centrado debajo del mes con el mismo formato que en Gastos; los gastos del mes se agrupan por día e identifican quién pagó cada uno.
 - No se muestra el bloque de balance acumulado, el desglose ni una lista de integrantes; Casa prioriza la lista de gastos. El reparto 50/50 se mantiene como regla del dominio.
 - El alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil, sin un título interno para la lista de gastos compartidos.
 - Alta de gasto desde Casa con opción Compartido activada automáticamente.
@@ -46,7 +46,7 @@ Better Auth gestiona sesiones. El registro público está cerrado después de re
 
 ## 4. Registro de gastos
 
-Formulario reutilizado en Drawer móvil y Dialog de escritorio. Campos: importe positivo en ARS, detalle, categoría global activa y fecha. Desde Gastos, Compartido inicia apagado; desde Casa, inicia activado. No hay selector de hogar, grupo ni participantes.
+Formulario reutilizado en Drawer móvil y Dialog de escritorio. Campos: importe positivo en ARS, detalle, categoría global activa y fecha. El importe acepta coma o punto para empezar a ingresar hasta dos decimales; no agrega separadores de miles ni completa centavos automáticamente. Desde Gastos, Compartido inicia apagado; desde Casa, inicia activado. No hay selector de hogar, grupo ni participantes.
 
 Los gastos compartidos se reparten 50/50 entre los dos integrantes. Cuando el importe en centavos es impar, el centavo adicional corresponde al pagador. El pagador es el autor del gasto. Otros integrantes pueden consultar un gasto compartido en solo lectura, nunca editarlo o borrarlo.
 
