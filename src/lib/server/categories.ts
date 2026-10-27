@@ -10,17 +10,20 @@ import {
   validateCategoryDraft,
 } from "@/lib/categories/policy";
 import type { CategoryView } from "@/lib/categories/types";
+import { measureServerWork } from "@/lib/server/performance";
 
 export type { CategoryView } from "@/lib/categories/types";
 
 export async function listCategories(
   includeArchived = false,
 ): Promise<CategoryView[]> {
-  const rows = await db
-    .select()
-    .from(categories)
-    .where(includeArchived ? undefined : eq(categories.isArchived, false))
-    .orderBy(asc(categories.name), asc(categories.id));
+  const rows = await measureServerWork("db.categories.list", () =>
+    db
+      .select()
+      .from(categories)
+      .where(includeArchived ? undefined : eq(categories.isArchived, false))
+      .orderBy(asc(categories.name), asc(categories.id)),
+  );
 
   return rows.map(toCategoryView);
 }

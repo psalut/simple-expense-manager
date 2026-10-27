@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { acceptSharedSpaceInvitationAction, createSharedSpaceAction } from "@/app/(app)/groups/actions";
 import { callServerAction } from "@/lib/action-result";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAppUser } from "@/components/app-query-provider";
+import { invalidateHouseholdAndExpenses } from "@/lib/app-data/query-keys";
 
 export function HouseholdOnboarding({ empty, canJoin }: { empty: boolean; canJoin: boolean }) {
-  const router = useRouter();
+  const user = useAppUser();
+  const queryClient = useQueryClient();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -18,7 +21,7 @@ export function HouseholdOnboarding({ empty, canJoin }: { empty: boolean; canJoi
     startTransition(async () => {
       const result = await callServerAction(() => create ? createSharedSpaceAction("Casa") : acceptSharedSpaceInvitationAction(code));
       if (!result.success) setError(result.error);
-      else router.refresh();
+      else void invalidateHouseholdAndExpenses(queryClient, user.id);
     });
   }
   return <section className="max-w-md space-y-4">

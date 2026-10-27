@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { categories } from "@/db/categories-schema";
 import { expenses } from "@/db/expenses-schema";
@@ -9,6 +9,7 @@ import { sharedSpaceMembers, sharedSpaces } from "@/db/shared-space-schema";
 import { user } from "@/db/auth-schema";
 import { resolveHousehold } from "@/lib/server/household";
 import { monthlyTotalCents } from "@/lib/expenses/monthly-total";
+import { measureServerWork } from "@/lib/server/performance";
 import { canUseHousehold } from "@/lib/shared-spaces/household-policy";
 import {
   calculateGroupBalances,
@@ -86,6 +87,47 @@ export async function listPersonalExpenses(
   }));
 }
 
+export async function getPersonalExpenseMonth(
+  userId: string,
+  monthStart: string,
+  nextMonthStart: string,
+): Promise<{ expenses: PersonalExpenseView[]; monthlyTotal: string }> {
+  const rows = await measureServerWork("db.expenses.personal-month", () =>
+    db
+      .select({
+        id: expenses.id,
+        amountCents: expenses.amountCents,
+        description: expenses.description,
+        categoryId: categories.id,
+        categoryName: categories.name,
+        categoryColor: categories.color,
+        categoryIsArchived: categories.isArchived,
+        expenseDate: expenses.expenseDate,
+        sharedSpaceId: expenses.sharedSpaceId,
+        sharedSpaceName: sharedSpaces.name,
+        monthlyTotal: sql<string>`COALESCE(SUM(${expenses.amountCents}) OVER (), 0)::text`,
+      })
+      .from(expenses)
+      .innerJoin(categories, eq(expenses.categoryId, categories.id))
+      .leftJoin(sharedSpaces, eq(expenses.sharedSpaceId, sharedSpaces.id))
+      .where(personalExpenseScope(userId, monthStart, nextMonthStart))
+      .orderBy(desc(expenses.expenseDate), desc(expenses.createdAt), desc(expenses.id)),
+  );
+
+  return {
+    expenses: rows.map((row) => {
+      const { monthlyTotal, ...expense } = row;
+      void monthlyTotal;
+      return {
+        ...expense,
+        amountCents: row.amountCents.toString(),
+        currency: "ARS",
+      };
+    }),
+    monthlyTotal: rows[0]?.monthlyTotal ?? "0",
+  };
+}
+
 export async function getPersonalMonthlyTotal(userId: string, monthStart: string, nextMonthStart: string) {
   const rows = await db.select({ id: expenses.id, userId: expenses.userId, expenseDate: expenses.expenseDate, amountCents: expenses.amountCents })
     .from(expenses).where(personalExpenseScope(userId, monthStart, nextMonthStart));
@@ -98,7 +140,7 @@ export async function getGroupExpenseOverview(
 ): Promise<{ expenses: GroupExpenseView[]; balances: GroupBalanceView[] }> {
   return db.transaction(
     async (tx) => {
-      const [membership] = await tx
+      const [membership] = await measureServerWork("db.household.membership-check", () => tx
         .select({ userId: sharedSpaceMembers.userId })
         .from(sharedSpaceMembers)
         .where(
@@ -107,17 +149,17 @@ export async function getGroupExpenseOverview(
             eq(sharedSpaceMembers.sharedSpaceId, sharedSpaceId),
           ),
         )
-        .limit(1);
+        .limit(1));
       if (!membership) throw new ExpenseError("No tenés acceso a ese grupo.");
 
-      const members = await tx
+      const members = await measureServerWork("db.household.member-profiles", () => tx
         .select({ userId: user.id, name: user.name })
         .from(sharedSpaceMembers)
         .innerJoin(user, eq(sharedSpaceMembers.userId, user.id))
         .where(eq(sharedSpaceMembers.sharedSpaceId, sharedSpaceId))
-        .orderBy(asc(user.name), asc(user.id));
+        .orderBy(asc(user.name), asc(user.id)));
 
-      const rows = await tx
+      const rows = await measureServerWork("db.household.expenses", () => tx
         .select({
           id: expenses.id,
           amountCents: expenses.amountCents,
@@ -137,7 +179,7 @@ export async function getGroupExpenseOverview(
         .innerJoin(categories, eq(expenses.categoryId, categories.id))
         .innerJoin(sharedSpaces, eq(expenses.sharedSpaceId, sharedSpaces.id))
         .where(groupExpenseScope(sharedSpaceId))
-        .orderBy(desc(expenses.expenseDate), desc(expenses.createdAt), desc(expenses.id));
+        .orderBy(desc(expenses.expenseDate), desc(expenses.createdAt), desc(expenses.id)));
 
       const balances =
         members.length === 2

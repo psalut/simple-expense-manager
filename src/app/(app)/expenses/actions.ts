@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/action-result";
 import {
   AuthenticationRequiredError,
@@ -18,7 +17,6 @@ export async function createExpenseAction(
 ): Promise<ActionResult<{ id: string; sharedSpaceId: string | null }>> {
   return runAction(async (userId) => {
     const result = await createExpense(userId, input);
-    revalidateExpenseViews(result.sharedSpaceId);
     return result;
   });
 }
@@ -35,8 +33,6 @@ export async function updateExpenseAction(
 > {
   return runAction(async (userId) => {
     const result = await updateExpense(userId, expenseId, input);
-    revalidateExpenseViews(result.oldSharedSpaceId);
-    revalidateExpenseViews(result.sharedSpaceId);
     return result;
   });
 }
@@ -46,15 +42,8 @@ export async function deleteExpenseAction(
 ): Promise<ActionResult<{ id: string; sharedSpaceId: string | null }>> {
   return runAction(async (userId) => {
     const result = await deleteExpense(userId, expenseId);
-    revalidateExpenseViews(result.sharedSpaceId);
     return result;
   });
-}
-
-function revalidateExpenseViews(sharedSpaceId: string | null) {
-  revalidatePath("/");
-  revalidatePath("/household");
-  if (sharedSpaceId) revalidatePath("/groups/" + sharedSpaceId);
 }
 
 async function runAction<T>(

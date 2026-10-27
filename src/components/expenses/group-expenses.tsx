@@ -221,7 +221,7 @@ export function GroupExpenses({
           setFeedback(message);
           setActiveExpense(null);
           setNewExpenseKey(null);
-          router.refresh();
+          if (!allowCreate) router.refresh();
         }}
       />
 
@@ -241,7 +241,7 @@ export function GroupExpenses({
         onSaved={(message) => {
           setFeedback(message);
           setNewExpenseKey(null);
-          router.refresh();
+          if (!allowCreate) router.refresh();
         }}
       />
     </section>

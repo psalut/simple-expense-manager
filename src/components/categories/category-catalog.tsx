@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Drawer } from "@base-ui/react/drawer";
 import { Menu } from "@base-ui/react/menu";
@@ -17,15 +17,18 @@ import {
 import {
   archiveCategoryAction,
   deleteArchivedCategoryAction,
-  getArchivedCategoriesAction,
   restoreArchivedCategoryAction,
 } from "@/app/(app)/categories/actions";
+import { useAppUser } from "@/components/app-query-provider";
+import { StaleDataNotice } from "@/components/app-data/query-feedback";
 import { CategoryEditorDialog } from "@/components/categories/category-editor-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select";
 import type { CategoryView } from "@/lib/categories/types";
 import { callServerAction } from "@/lib/action-result";
+import { useArchivedCategoriesData } from "@/lib/app-data/client";
+import { invalidateAllPrivateAppData } from "@/lib/app-data/query-keys";
 
 type Props = {
   title: string;
@@ -45,21 +48,22 @@ export function CategoryCatalog({
   categories,
   replacementCategories,
 }: Props) {
-  const router = useRouter();
+  const user = useAppUser();
+  const queryClient = useQueryClient();
   const isMobile = useMobileViewport();
   const [editor, setEditor] = useState<{
     category: CategoryView | null;
     instance: number;
   } | null>(null);
   const editorInstance = useRef(0);
-  const [archived, setArchived] = useState<CategoryView[] | null>(null);
   const [archivesOpen, setArchivesOpen] = useState(false);
+  const archivedQuery = useArchivedCategoriesData(archivesOpen);
+  const archived = archivedQuery.data ?? null;
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [replacementCategoryId, setReplacementCategoryId] = useState("");
   const [confirmationError, setConfirmationError] = useState("");
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
-  const [isLoadingArchives, startLoadArchives] = useTransition();
   const [isMutating, startMutation] = useTransition();
   const isMutatingRef = useRef(false);
 
@@ -71,26 +75,8 @@ export function CategoryCatalog({
   }
 
   function toggleArchives() {
-    if (archivesOpen) {
-      setArchivesOpen(false);
-      return;
-    }
-
-    setArchivesOpen(true);
-    if (archived !== null) return;
-
     setError("");
-    startLoadArchives(async () => {
-      const result = await callServerAction(() =>
-        getArchivedCategoriesAction(),
-      );
-      if (!result.success) {
-        setError(result.error);
-        setArchivesOpen(false);
-        return;
-      }
-      setArchived(result.data);
-    });
+    setArchivesOpen((open) => !open);
   }
 
   function requestConfirmation(action: Confirmation["action"], category: CategoryView) {
@@ -123,15 +109,11 @@ export function CategoryCatalog({
 
         if (current.action === "archive") {
           setFeedback("La categoría quedó archivada.");
-          setArchived(null);
         } else {
           setFeedback(`Se eliminó “${current.category.name}” definitivamente.`);
-          setArchived((items) =>
-            items?.filter((item) => item.id !== current.category.id) ?? null,
-          );
         }
+        void invalidateAllPrivateAppData(queryClient, user.id);
         setConfirmation(null);
-        router.refresh();
       } finally {
         isMutatingRef.current = false;
       }
@@ -155,10 +137,7 @@ export function CategoryCatalog({
         }
 
         setFeedback(`Se restauró “${category.name}”.`);
-        setArchived((items) =>
-          items?.filter((item) => item.id !== category.id) ?? null,
-        );
-        router.refresh();
+        void invalidateAllPrivateAppData(queryClient, user.id);
       } finally {
         isMutatingRef.current = false;
       }
@@ -293,11 +272,11 @@ export function CategoryCatalog({
           variant="ghost"
           className="min-h-11 gap-2 px-2"
           onClick={toggleArchives}
-          disabled={isLoadingArchives}
+          disabled={archivedQuery.isFetching && !archived}
           aria-expanded={archivesOpen}
         >
           <Archive aria-hidden="true" />
-          {isLoadingArchives
+          {archivedQuery.isFetching && !archived
             ? "Cargando archivadas…"
             : archivesOpen
               ? "Ocultar categorías archivadas"
@@ -308,6 +287,13 @@ export function CategoryCatalog({
             </span>
           )}
         </Button>
+
+        {archivesOpen && archivedQuery.isError && !archived && (
+          <p className="mt-3 text-sm text-destructive" role="alert">
+            No se pudieron cargar las categorías archivadas. Intentá cerrar y abrir esta sección.
+          </p>
+        )}
+        {archivesOpen && archivedQuery.isError && archived && <StaleDataNotice />}
 
         {archivesOpen && archived !== null && (
           <section
@@ -345,10 +331,10 @@ export function CategoryCatalog({
         }}
         category={editor?.category ?? null}
         onSaved={(message) => {
+          void invalidateAllPrivateAppData(queryClient, user.id);
           setFeedback(message);
           setError("");
           setEditor(null);
-          router.refresh();
         }}
       />
 

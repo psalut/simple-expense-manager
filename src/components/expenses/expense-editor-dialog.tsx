@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog } from "@base-ui/react/dialog";
@@ -26,6 +27,7 @@ import type {
   PersonalExpenseView,
 } from "@/lib/server/expenses";
 import { callServerAction } from "@/lib/action-result";
+import { invalidateExpenseRelatedData } from "@/lib/app-data/query-keys";
 import { cn } from "@/lib/utils";
 
 const expenseControlClassName =
@@ -66,6 +68,7 @@ export function ExpenseEditorDialog({
   readOnly = false,
   onSaved,
 }: Props) {
+  const queryClient = useQueryClient();
   const isMobile = useMobileViewport();
   const completeGroups = groups.filter(
     (group) =>
@@ -320,6 +323,7 @@ export function ExpenseEditorDialog({
           setError(result.error);
           return;
         }
+        void invalidateExpenseRelatedData(queryClient, currentUserId);
         onOpenChange(false);
         onSaved(
           initialExpense
@@ -346,6 +350,7 @@ export function ExpenseEditorDialog({
           setShowDeleteConfirmation(false);
           return;
         }
+        void invalidateExpenseRelatedData(queryClient, currentUserId);
         setShowDeleteConfirmation(false);
         onOpenChange(false);
         onSaved("El gasto se eliminó.");

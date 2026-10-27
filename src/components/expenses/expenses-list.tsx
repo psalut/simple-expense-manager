@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseEditorDialog, type ExpenseGroupOption } from "@/components/expenses/expense-editor-dialog";
@@ -24,7 +23,6 @@ type Props = {
 };
 
 export function ExpensesList({ expenses, categories, groups, currentUserId, account, month, monthlyTotal, today }: Props) {
-  const router = useRouter();
   const [editor, setEditor] = useState<{ expense: PersonalExpenseView | null; key: number } | null>(null);
   const [feedback, setFeedback] = useState("");
   const instance = useRef(0);
@@ -174,7 +172,6 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
         onSaved={(message) => {
           setFeedback(message);
           setEditor(null);
-          router.refresh();
         }}
       />
     </>

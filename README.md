@@ -14,6 +14,16 @@ El seed usa IDs estables y ON CONFLICT DO NOTHING: se puede repetir sin sobreesc
 
 Las sugerencias Jev son opcionales. Para habilitarlas, configurá `TYPESAFE_API_KEY` en el entorno de servidor. Sin esa clave, o ante errores del servicio, la app deja elegir la categoría manualmente. El umbral conservador por defecto es 0.8; se puede ajustar entre 0.5 y 1 con `CATEGORY_SUGGESTION_MIN_PROBABILITY`.
 
+## Caché y navegación
+
+Gastos, Casa y Categorías conservan datos autenticados en la memoria de TanStack Query v5 del navegador: cinco minutos frescos y hasta treinta minutos en memoria después de salir de una pestaña. La clave incluye el usuario; Gastos también incluye el mes. La caché no se persiste en `localStorage`, IndexedDB ni service worker.
+
+Volver a Gastos o Categorías dentro de esos cinco minutos muestra la respuesta guardada sin volver a pedir sus datos a `/api/app-data`. Cada entrada real a Casa muestra primero la respuesta guardada y lanza una consulta de fondo, aunque siga fresca, para detectar cambios de la otra persona. En foco y reconexión se revalidan las consultas vencidas. Si falla una consulta de fondo, se conserva la vista guardada.
+
+Las escrituras de gastos invalidan todos los meses de Gastos y Casa, incluidos gastos y balances compartidos; las escrituras de categorías invalidan todas las vistas privadas que contienen el catálogo. Logout y errores de sesión limpian la caché. Los endpoints de lectura vuelven a validar Better Auth y responden `private, no-store`; el servidor no conserva estas respuestas entre sesiones.
+
+Para diagnosticar una compilación local de producción, usá una base y cuentas de desarrollo aisladas. Con `APP_PERF_LOGS=true` en el proceso de `pnpm start`, el servidor informa etiquetas de consultas y duración, sin SQL, parámetros, identidades ni datos. En DevTools, conservá el registro de Network y separá las solicitudes RSC (`?_rsc`) de `/api/app-data/*`; compará primera visita, retorno a una pestaña fresca y cada entrada a Casa. No uses una Neon que comparta datos con Vercel para crear fixtures de medición.
+
 ## PWA e instalación online
 
 La app puede agregarse a la pantalla de inicio y abrirse en modo standalone cuando se publica bajo HTTPS. Sigue necesitando conexión a internet para iniciar sesión y usar Gastos, Casa y Categorías; no ofrece modo offline ni sincronización.

@@ -1,20 +1,18 @@
 
-import { auth } from "@/lib/auth";
 import Link from "next/link";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { AppNavigation } from "@/components/navigation/app-navigation";
 import { isAccountAllowed } from "@/lib/server/household";
+import { getAuthenticatedSession } from "@/lib/server/authenticated-user";
+import { AppQueryProvider } from "@/components/app-query-provider";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getAuthenticatedSession();
 
   if (!session) {
     redirect("/login");
@@ -22,6 +20,14 @@ export default async function AppLayout({
   if (!(await isAccountAllowed(session.user.id))) redirect("/access-denied");
 
   return (
+    <AppQueryProvider
+      key={session.user.id}
+      user={{
+        id: session.user.id,
+        name: session.user.name ?? "",
+        email: session.user.email ?? "",
+      }}
+    >
     <div className="min-h-dvh pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
       <a
         href="#main-content"
@@ -48,5 +54,6 @@ export default async function AppLayout({
         {children}
       </div>
     </div>
+    </AppQueryProvider>
   );
 }

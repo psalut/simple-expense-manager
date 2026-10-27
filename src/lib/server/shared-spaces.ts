@@ -3,6 +3,7 @@ import "server-only";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { resolveHousehold } from "@/lib/server/household";
+import { measureServerWork } from "@/lib/server/performance";
 import { db } from "@/db";
 import { user } from "@/db/auth-schema";
 import {
@@ -62,21 +63,23 @@ export async function getSharedSpacesForUser(
 
   if (spaces.length === 0) return [];
 
-  const members = await db
-    .select({
-      sharedSpaceId: sharedSpaceMembers.sharedSpaceId,
-      userId: sharedSpaceMembers.userId,
-      name: user.name,
-    })
-    .from(sharedSpaceMembers)
-    .innerJoin(user, eq(sharedSpaceMembers.userId, user.id))
-    .where(
-      inArray(
-        sharedSpaceMembers.sharedSpaceId,
-        spaces.map((space) => space.id),
-      ),
-    )
-    .orderBy(asc(user.name), asc(user.id));
+  const members = await measureServerWork("db.groups.member-profiles", () =>
+    db
+      .select({
+        sharedSpaceId: sharedSpaceMembers.sharedSpaceId,
+        userId: sharedSpaceMembers.userId,
+        name: user.name,
+      })
+      .from(sharedSpaceMembers)
+      .innerJoin(user, eq(sharedSpaceMembers.userId, user.id))
+      .where(
+        inArray(
+          sharedSpaceMembers.sharedSpaceId,
+          spaces.map((space) => space.id),
+        ),
+      )
+      .orderBy(asc(user.name), asc(user.id)),
+  );
 
   const membersBySpaceId = new Map<string, SharedSpaceOverview["members"]>();
   for (const member of members) {
@@ -94,18 +97,20 @@ export async function getSharedSpacesForUser(
 export async function getSharedSpaceSummariesForUser(
   userId: string,
 ): Promise<{ id: string; name: string }[]> {
-  return db
-    .select({
-      id: sharedSpaces.id,
-      name: sharedSpaces.name,
-    })
-    .from(sharedSpaceMembers)
-    .innerJoin(
-      sharedSpaces,
-      eq(sharedSpaceMembers.sharedSpaceId, sharedSpaces.id),
-    )
-    .where(eq(sharedSpaceMembers.userId, userId))
-    .orderBy(asc(sharedSpaces.name), asc(sharedSpaces.id));
+  return measureServerWork("db.groups.user-summaries", () =>
+    db
+      .select({
+        id: sharedSpaces.id,
+        name: sharedSpaces.name,
+      })
+      .from(sharedSpaceMembers)
+      .innerJoin(
+        sharedSpaces,
+        eq(sharedSpaceMembers.sharedSpaceId, sharedSpaces.id),
+      )
+      .where(eq(sharedSpaceMembers.userId, userId))
+      .orderBy(asc(sharedSpaces.name), asc(sharedSpaces.id)),
+  );
 }
 
 export async function createSharedSpace(

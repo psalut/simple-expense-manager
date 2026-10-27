@@ -5,10 +5,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { authClient } from "@/lib/auth-client";
+import { useAppQueryClient } from "@/components/app-query-provider";
 import { Button } from "@/components/ui/button";
 
 export function LogoutButton() {
   const router = useRouter();
+  const queryClient = useAppQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,6 +26,7 @@ export function LogoutButton() {
         return;
       }
 
+      queryClient?.clear();
       router.replace("/login");
       router.refresh();
     } catch {

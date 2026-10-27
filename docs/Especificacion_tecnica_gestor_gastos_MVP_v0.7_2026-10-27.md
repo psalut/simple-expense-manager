@@ -25,10 +25,27 @@
 | Auth | Better Auth; sesiones autenticadas en servidor |
 | Persistencia | Neon PostgreSQL + Drizzle ORM/Kit, migraciones SQL versionadas |
 | Mutaciones | Server Actions protegidas, reglas concentradas en servicios de dominio |
+| Lecturas y caché de navegación | TanStack Query v5 en memoria del navegador; GET autenticados sin caché HTTP/servidor |
 | IA | TypeSafe AI **Jev** mediante API HTTP directa `POST https://api.typesafe.ai/v1/systemone`, modelo `jev-latest`, `fetch` en servidor y `TYPESAFE_API_KEY`; sin AI Gateway ni SDK `ai` |
 | PWA/hosting | Manifest nativo de App Router, PNG estándar y maskable, Apple touch icon y favicon ICO; instalación online en modo standalone; sin service worker, offline ni caché de datos |
 
 No agregar ORM paralelo, backend separado, Redis, colas, sockets, analítica, adjuntos, motor contable ni sincronización offline.
+
+### 1.1 Frescura e invalidación de lecturas privadas
+
+- El árbol autenticado crea un `QueryClient` nuevo por usuario. Las claves privadas incluyen su ID; la clave de gastos incluye además el mes. Categorías activas/archivadas y Casa tienen familias separadas dentro de ese ámbito.
+- `staleTime` inicial: cinco minutos. `gcTime`: treinta minutos desde que una consulta deja de tener observadores. La memoria vive solo en el navegador y no se serializa ni persiste. No hay caché global de respuestas privadas en Next, CDN o servidor.
+- `/api/app-data/*` vuelve a validar Better Auth en cada lectura, deriva el usuario de la sesión y responde con `Cache-Control: private, no-store`. El cliente no envía un `userId` como autoridad.
+- Gastos y Categorías usan el comportamiento stale-only al volver, enfocar la ventana o recuperar conectividad. Casa es la excepción: un observador de `usePathname` fuerza una consulta cada vez que la ruta entra a `/household`, también cuando el dato siga fresco. El contenido cacheado permanece visible durante ese refetch; no se usa `refetchOnWindowFocus` como sustituto.
+- Crear, editar, borrar o mover un gasto invalida todos los meses del usuario y la vista Casa, que contiene gastos y balances. Las claves de todos los meses quedan obsoletas para que una fecha movida no conserve el total del mes anterior. Las mutaciones del catálogo invalidan Gastos, Casa, Categorías activas y archivadas. Se cancelan/refrescan consultas activas para evitar que una respuesta anterior sustituya el resultado nuevo.
+- Logout limpia el cliente de consultas. Una respuesta 401/403 también limpia la caché privada antes de ir a acceso; las respuestas de error no se guardan como datos. Un fallo de red durante revalidación conserva el último valor exitoso.
+- Otro dispositivo no envía notificaciones en tiempo real. Las otras pestañas pueden mostrar hasta cinco minutos de antigüedad; Casa consulta el servidor en cada entrada real y muestra la caché mientras llega la respuesta. No hay polling, persistencia offline ni service worker.
+
+### 1.2 Diagnóstico de rendimiento
+
+Con `APP_PERF_LOGS=true` en una ejecución local de producción, `src/lib/server/performance.ts` imprime etiquetas estáticas y duración de lecturas/solicitudes. No registra SQL, parámetros, IDs de usuario, descripciones, tokens ni resultados. En DevTools Network se deben distinguir las solicitudes RSC (`?_rsc`) de `/api/app-data/*`; comparar primera visita, retorno dentro de cinco minutos y entrada a Casa. Usar exclusivamente una base y cuentas de desarrollo aisladas para los recorridos A/B; no crear fixtures en Neon compartida con Vercel.
+
+El diagnóstico estático previo encontró que Gastos leía dos veces los mismos gastos del mes: una consulta para filas y otra que descargaba las filas otra vez para calcular el total. La lectura unificada calcula la suma exacta en PostgreSQL y devuelve centavos como texto. Layout y página también solicitaban sesión por separado; `React.cache` reduce repetición dentro del mismo render, con alcance por request. Casa cargaba sus datos cada render y leía perfiles de miembros por más de una vía. No se documentan tiempos autenticados antes/después mientras no exista un entorno de prueba aislado con dos cuentas.
 
 ## 2. Modelo de datos v0.7 implementado (contrato)
 
@@ -169,6 +186,10 @@ Ejemplo: $100,01 = 10.001 centavos → pagador 5.001; otro miembro 5.000. No hac
 **Refinamiento UI (octubre 2026):** el agente reportó implementación del encabezado móvil compacto, acceso a Cuenta junto a los títulos, selectores adaptados a móvil, calendario amplio dentro del Drawer, indicación de hoy, reorganización de campos (Compartido al final), scroll/focus rings y estilos unificados. Las inspecciones visuales en 360/375/390 px y escritorio resultaron favorables en las iteraciones finales; no se documentó prueba física de safe-area ni teclado iOS/Android. Se corrigió la discrepancia entre llamadas que pasaban `description` y el contrato de `SectionHeading` quitando esa prop, conforme a la decisión del usuario de no mostrar subtítulos en los encabezados. `react-day-picker` fue incorporado. En la carpeta habitual `pnpm lint` pasó y `pnpm test` aprobó 38 tests unitarios; la suite completa falló inicialmente por falta de `DATABASE_URL` al cargar la prueba de integración E2E-24. El usuario informó haber separado la ejecución unitaria de la integración; **no se aportó todavía el log final de una ejecución posterior**. No afirmar que el último `pnpm build` y `tsc` finales estén validados sin salida de esos comandos.
 
 **Primer deploy (27/10/2026):** el usuario confirmó que el proyecto `simple-expense-manager` fue desplegado desde GitHub (`main`) en Vercel mediante la interfaz web. No se registró aquí la URL final, el resultado de pruebas de autenticación/cookies, el funcionamiento de Neon/Jev en producción ni la configuración exacta de variables. No ejecutar migraciones o seed como parte del build sin plan expreso.
+
+**Caché de navegación (27/10/2026, `perf/navigation-caching`):** añadida la caché de cliente de cinco minutos/treinta minutos, lecturas autenticadas con `no-store`, invalidación por usuario/mes y refetch de Casa al entrar. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test` (53/53 unit tests) y `git diff --check` aprobaron. `pnpm exec next build --webpack` compiló y prerenderizó todas las rutas. El comando `pnpm build` con el builder Turbopack falló en este entorno antes de completar la compilación: el worker CSS terminó con código 0 y Turbopack reportó un error interno al escribir el endpoint del manifest.
+
+No se capturaron tiempos autenticados antes/después ni se corrió el recorrido de dos cuentas: el usuario confirmó que no hay una base aislada y dos cuentas de prueba configuradas. No se escribieron fixtures en Neon ni se ejecutaron las pruebas de integración con BD. La medición de red/Neon y el escenario A/B quedan pendientes para una base de desarrollo aislada; seguir los pasos de §1.2.
 
 ## 9. Próximas entregas y Git
 
