@@ -9,7 +9,6 @@ import {
   Archive,
   MoreHorizontal,
   Pencil,
-  Plus,
   RotateCcw,
   Trash2,
   X,
@@ -22,17 +21,19 @@ import {
 import { useAppUser } from "@/components/app-query-provider";
 import { StaleDataNotice } from "@/components/app-data/query-feedback";
 import { CategoryEditorDialog } from "@/components/categories/category-editor-dialog";
+import { FloatingCreateAction, HeaderCreateAction } from "@/components/navigation/create-actions";
+import { SectionHeading } from "@/components/navigation/section-heading";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select";
 import type { CategoryView } from "@/lib/categories/types";
+import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 import { callServerAction } from "@/lib/action-result";
 import { useArchivedCategoriesData } from "@/lib/app-data/client";
 import { invalidateAllPrivateAppData } from "@/lib/app-data/query-keys";
 
 type Props = {
-  title: string;
-  description?: string;
+  account: Pick<AuthenticatedUserProfile, "name" | "email">;
   categories: CategoryView[];
   replacementCategories: CategoryView[];
 };
@@ -43,8 +44,7 @@ type Confirmation = {
 };
 
 export function CategoryCatalog({
-  title,
-  description,
+  account,
   categories,
   replacementCategories,
 }: Props) {
@@ -223,26 +223,14 @@ export function CategoryCatalog({
   );
 
   return (
-    <section aria-labelledby="category-catalog-title" className="space-y-4">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id="category-catalog-title" className="text-xl font-semibold tracking-tight">
-            {title}
-          </h2>
-          {description && (
-            <p className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>
-          )}
-        </div>
-        <Button
-          type="button"
-          className="min-h-11 shrink-0 gap-2"
-          onClick={() => openEditor(null)}
-        >
-          <Plus aria-hidden="true" />
-          <span className="hidden sm:inline">Nueva categoría</span>
-          <span className="sm:hidden">Nueva</span>
-        </Button>
-      </header>
+    <div>
+      <SectionHeading
+        title="Categorías"
+        account={account}
+        actions={<HeaderCreateAction label="Nueva categoría" onClick={() => openEditor(null)} />}
+      />
+
+      <section aria-label="Catálogo de categorías" className="mt-4 space-y-4">
 
       {feedback && <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">{feedback}</p>}
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
@@ -322,6 +310,9 @@ export function CategoryCatalog({
           </section>
         )}
       </div>
+      </section>
+
+      <FloatingCreateAction label="Nueva categoría" onClick={() => openEditor(null)} />
 
       <CategoryEditorDialog
         key={editor?.instance ?? "closed"}
@@ -415,7 +406,7 @@ export function CategoryCatalog({
           </AlertDialog.Portal>
         </AlertDialog.Root>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -437,7 +428,7 @@ function CategoryCard({
   onDelete,
 }: CategoryCardProps) {
   return (
-    <article className="flex items-start gap-3 py-3">
+    <article className="flex items-center gap-3 py-2">
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex flex-wrap items-center gap-2">
           <span
@@ -452,15 +443,14 @@ function CategoryCard({
             </span>
           )}
         </div>
-        <ExpandableDescription description={category.description} name={category.name} />
       </div>
 
       <Menu.Root>
         <Menu.Trigger
           aria-label={"Acciones de " + category.name}
-          className="grid size-11 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+          className="grid size-10 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
         >
-          <MoreHorizontal aria-hidden="true" />
+          <MoreHorizontal aria-hidden="true" className="size-5" />
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner side="top" align="end" sideOffset={6} collisionPadding={12} className="z-[70]">
@@ -512,60 +502,6 @@ function CategoryCard({
     </article>
   );
 }
-
-function ExpandableDescription({ description, name }: { description: string; name: string }) {
-  const measureRef = useRef<HTMLSpanElement>(null);
-  const [canExpand, setCanExpand] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    const element = measureRef.current;
-    if (!element) return;
-    const measure = () => setCanExpand(element.getBoundingClientRect().height > 49);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [description]);
-
-  return (
-    <div className="relative min-w-0">
-      {canExpand ? (
-        <button
-          type="button"
-          aria-expanded={expanded}
-          aria-label={`${expanded ? "Contraer" : "Expandir"} descripción de ${name}`}
-          className="block min-h-11 w-full cursor-pointer py-1 text-left text-sm leading-6 text-muted-foreground hover:underline hover:decoration-dotted hover:underline-offset-4 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 whitespace-pre-wrap break-words"
-          style={expanded ? undefined : twoLineClampStyle}
-          onClick={() => setExpanded((value) => !value)}
-        >
-          {description}
-        </button>
-      ) : (
-        <p
-          className="whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground"
-          style={twoLineClampStyle}
-        >
-          {description}
-        </p>
-      )}
-      <span
-        ref={measureRef}
-        aria-hidden="true"
-        className="invisible pointer-events-none absolute inset-x-0 top-0 block whitespace-pre-wrap break-words text-sm leading-6"
-      >
-        {description}
-      </span>
-    </div>
-  );
-}
-
-const twoLineClampStyle = {
-  display: "-webkit-box",
-  WebkitBoxOrient: "vertical" as const,
-  WebkitLineClamp: 2,
-  overflow: "hidden",
-};
 
 function useMobileViewport() {
   const [isMobile, setIsMobile] = useState(false);

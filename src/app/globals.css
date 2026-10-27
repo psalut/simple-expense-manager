@@ -134,3 +134,9 @@
     padding-top: env(safe-area-inset-top);
   }
 }
+
+@media (display-mode: standalone) and (max-width: 767px) {
+  .household-page-main {
+    padding-top: 0.5rem;
+  }
+}

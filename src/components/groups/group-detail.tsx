@@ -23,6 +23,7 @@ export function GroupDetail({
   categories,
   expenses,
   balances,
+  month,
   today,
   account,
 }: {
@@ -33,6 +34,7 @@ export function GroupDetail({
   categories: CategoryView[];
   expenses: GroupExpenseView[];
   balances: GroupBalanceView[];
+  month: string;
   today: string;
   account: Pick<AuthenticatedUserProfile, "name" | "email">;
 }) {
@@ -68,14 +70,8 @@ export function GroupDetail({
     }
   }
 
-  return (
-    <>
-      <SectionHeading
-        title={displayName}
-        account={account}
-      />
-
-      {groupIsFull && <GroupExpenses
+  return groupIsFull ? (
+    <GroupExpenses
         groupId={space.id}
         groupName={displayName}
         groups={groups}
@@ -83,10 +79,19 @@ export function GroupDetail({
         categories={categories}
         expenses={expenses}
         balances={balances}
+        month={month}
         today={today}
-      />}
+        account={account}
+        showBalance={false}
+    />
+  ) : (
+    <>
+      <SectionHeading
+        title={displayName}
+        account={account}
+      />
 
-      {!groupIsFull && <section aria-labelledby="group-invitation-heading" className="space-y-4">
+      <section aria-labelledby="group-invitation-heading" className="space-y-4">
         <div>
           <h2 id="group-invitation-heading" className="text-lg font-semibold">
             Invitación
@@ -142,7 +147,7 @@ export function GroupDetail({
             )}
           </div>
         )}
-      </section>}
+      </section>
     </>
   );
 }

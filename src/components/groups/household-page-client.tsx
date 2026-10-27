@@ -8,7 +8,13 @@ import { HouseholdDataLoading, QueryUnavailable, StaleDataNotice } from "@/compo
 import { useAppUser } from "@/components/app-query-provider";
 import { useHouseholdPageData } from "@/lib/app-data/client";
 
-export function HouseholdPageClient({ today }: { today: string }) {
+export function HouseholdPageClient({
+  month,
+  today,
+}: {
+  month: string;
+  today: string;
+}) {
   const account = useAppUser();
   const query = useHouseholdPageData();
 
@@ -21,7 +27,7 @@ export function HouseholdPageClient({ today }: { today: string }) {
 
   const { household, space, legacy, overview, categories } = query.data;
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-4 sm:px-6 sm:py-10">
+    <main className="household-page-main mx-auto w-full max-w-3xl space-y-4 px-4 py-4 sm:space-y-6 sm:px-6 sm:py-10">
       {query.isError && <StaleDataNotice />}
       {space && overview ? (
         <GroupDetail
@@ -32,6 +38,7 @@ export function HouseholdPageClient({ today }: { today: string }) {
           categories={categories}
           expenses={overview.expenses}
           balances={overview.balances}
+          month={month}
           today={today}
           account={account}
         />

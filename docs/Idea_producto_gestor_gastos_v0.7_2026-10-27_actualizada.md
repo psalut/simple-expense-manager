@@ -24,20 +24,21 @@ La refactorización a un único hogar y la implementación PWA fueron confirmada
 
 - Historial del usuario del mes elegido: gastos privados más los compartidos que pagó, sin duplicaciones.
 - Selector de mes y **total mensual centrado inmediatamente debajo**, mostrando solo el importe, sin rótulo ni descripción.
-- Encabezado compacto; botón de alta de gasto.
+- Encabezado compacto; alta de gasto en el encabezado en escritorio y con un botón flotante **+** en móvil.
 - Edición y eliminación únicamente de los gastos propios.
 
 ### Casa (`/household`)
 
 - Acceso directo desde la pestaña **Casa**, con ícono de corazón; no hay listado ni selector de grupos.
-- Gastos compartidos de ambos integrantes con identificación de quién pagó.
-- Balance **acumulado** desde el inicio, a favor o en contra; desglose de pagado y parte correspondiente cuando se expande.
+- Selector mensual y gastos compartidos del mes agrupados por día, con identificación de quién pagó cada gasto.
+- No se muestra el bloque de balance acumulado, el desglose ni una lista de integrantes; Casa prioriza la lista de gastos. El reparto 50/50 se mantiene como regla del dominio.
+- El alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil, sin un título interno para la lista de gastos compartidos.
 - Alta de gasto desde Casa con opción Compartido activada automáticamente.
 - Invitación utilizada únicamente para incorporar a la segunda cuenta durante el onboarding.
 
 ### Categorías (`/categories`)
 
-**Sin cambios funcionales respecto de la implementación anterior.** Catálogo global editable, con nombre, descripción, color y estado activa/archivada. Se mantiene la posibilidad de archivar, restaurar y eliminar con reemplazo seguro cuando corresponde. No existen catálogos de categorías por grupo. Los cambios son visibles para ambos usuarios, sin revelar gastos privados ajenos.
+**Sin cambios funcionales respecto de la implementación anterior.** Catálogo global editable, con nombre, descripción, color y estado activa/archivada. El listado muestra nombre, color y estado; la descripción se consulta al abrir la edición de cada categoría. La pantalla conserva únicamente el título principal «Categorías»; el alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil. Se mantiene la posibilidad de archivar, restaurar y eliminar con reemplazo seguro cuando corresponde. No existen catálogos de categorías por grupo. Los cambios son visibles para ambos usuarios, sin revelar gastos privados ajenos.
 
 ### Cuenta y autenticación
 

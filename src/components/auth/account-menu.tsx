@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { UserRound } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 
@@ -11,9 +12,41 @@ export function AccountMenu({
   email: string;
 }) {
   const initial = name.trim().slice(0, 1).toLocaleUpperCase("es-AR") || "U";
+  const menuRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    const closeOnOutsideInteraction = (event: Event) => {
+      const menu = menuRef.current;
+      if (
+        menu?.open &&
+        event.target instanceof Node &&
+        !menu.contains(event.target)
+      ) {
+        menu.open = false;
+      }
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      const menu = menuRef.current;
+      if (event.key !== "Escape" || !menu?.open) return;
+
+      menu.open = false;
+      menu.querySelector("summary")?.focus();
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideInteraction);
+    document.addEventListener("focusin", closeOnOutsideInteraction);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideInteraction);
+      document.removeEventListener("focusin", closeOnOutsideInteraction);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, []);
 
   return (
-    <details className="group relative">
+    <details ref={menuRef} className="group relative">
       <summary
         aria-label="Abrir opciones de cuenta"
         className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 [&::-webkit-details-marker]:hidden"

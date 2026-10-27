@@ -13,7 +13,7 @@ export function SectionHeading({
 }) {
   return (
     <header className="space-y-1">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="min-w-0 break-words text-2xl font-semibold tracking-tight sm:text-3xl">
           {title}
         </h1>

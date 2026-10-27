@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseEditorDialog, type ExpenseGroupOption } from "@/components/expenses/expense-editor-dialog";
+import { FloatingCreateAction, HeaderCreateAction } from "@/components/navigation/create-actions";
 import { SectionHeading } from "@/components/navigation/section-heading";
 import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 import type { CategoryView } from "@/lib/categories/types";
@@ -46,17 +47,10 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
         <SectionHeading
           title="Gastos"
           account={account}
-          actions={
-            <div className="hidden md:block">
-              <Button type="button" className="min-h-11 gap-2" onClick={() => openEditor(null)}>
-                <Plus aria-hidden="true" />
-                Agregar gasto
-              </Button>
-            </div>
-          }
+          actions={<HeaderCreateAction label="Agregar gasto" onClick={() => openEditor(null)} />}
         />
 
-        <nav aria-label="Navegar por mes" className="flex min-h-12 items-center justify-between border-y border-border py-1">
+        <nav aria-label="Navegar por mes" className="flex min-h-14 items-center justify-between border-y border-border py-1">
           <Link
             href={"/?month=" + shiftMonth(month, -1)}
             aria-label="Mes anterior"
@@ -64,7 +58,12 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
           >
             <ChevronLeft aria-hidden="true" />
           </Link>
-          <p className="font-medium">{formatMonth(month)}</p>
+          <div className="min-w-0 flex-1 text-center leading-5">
+            <p className="font-medium">{formatMonth(month)}</p>
+            <p className="text-sm font-medium tabular-nums [overflow-wrap:anywhere]">
+              {formatArs(monthlyTotal)}
+            </p>
+          </div>
           <Link
             href={"/?month=" + shiftMonth(month, 1)}
             aria-label="Mes siguiente"
@@ -74,8 +73,6 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
           </Link>
         </nav>
       </header>
-      <p className="py-5 text-center text-3xl font-semibold tracking-tight tabular-nums [overflow-wrap:anywhere] sm:py-6">{formatArs(monthlyTotal)}</p>
-
       {feedback && <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-300" role="status">{feedback}</p>}
 
       {expenses.length === 0 ? (
@@ -149,14 +146,7 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
         </div>
       )}
 
-      <Button
-        type="button"
-        aria-label="Agregar gasto"
-        onClick={() => openEditor(null)}
-        className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-4 z-40 size-14 rounded-full shadow-lg md:hidden"
-      >
-        <Plus size={24} aria-hidden="true" />
-      </Button>
+      <FloatingCreateAction label="Agregar gasto" onClick={() => openEditor(null)} />
 
       <ExpenseEditorDialog
         key={editor?.key ?? "closed"}

@@ -1,6 +1,17 @@
 import { HouseholdPageClient } from "@/components/groups/household-page-client";
-import { currentDateInBuenosAires } from "@/lib/expenses/format";
+import {
+  currentDateInBuenosAires,
+  normalizeExpenseMonth,
+} from "@/lib/expenses/format";
 
-export default function HouseholdPage() {
-  return <HouseholdPageClient today={currentDateInBuenosAires()} />;
+export default async function HouseholdPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const today = currentDateInBuenosAires();
+  const month = normalizeExpenseMonth(params.month, today);
+
+  return <HouseholdPageClient month={month} today={today} />;
 }

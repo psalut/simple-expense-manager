@@ -35,14 +35,14 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 - **Reparto:** 50/50 automático; con centavos impares, el pagador asume el centavo excedente. Balances derivados de gastos, no de movimientos separados.
 - **Moneda:** ARS, montos almacenados y calculados en centavos enteros (`BIGINT`/`BigInt`), sin redondeos con coma flotante.
 - **Total mensual personal:** suma exacta de los gastos del mes registrados/pagados por el usuario, privados y compartidos una sola vez.
-- **Categorías:** catálogo global existente **sin cambios**; nombre, descripción, color, archivado, restauración y eliminación con reemplazo cuando aplica.
+- **Categorías:** catálogo global existente; conserva nombre, descripción, color, archivado, restauración y eliminación con reemplazo cuando aplica. En `/categories`, el listado muestra nombre, color y estado; la descripción queda disponible al abrir la edición.
 
 ## 3. Navegación y UX
 
 - Navegación inferior: **Gastos**, **Casa** (ícono corazón), **Categorías**.
-- `/`: lista personal filtrada por mes; selector mensual; solo el importe del total mensual, centrado bajo el mes; header compacto.
-- `/household`: gastos compartidos de ambos, balance acumulado y desglose opcional; alta con Compartido activado.
-- `/categories`: administración del catálogo global sin refactorizaciones funcionales.
+- `/`: lista personal filtrada por mes; selector mensual; solo el importe del total mensual, centrado bajo el mes; header compacto; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
+- `/household`: selector mensual y gastos compartidos del mes, agrupados por día y con el pagador identificado; sin título interno para la lista, bloque de balance, desglose ni lista de integrantes; alta con Compartido activado desde el encabezado en escritorio y un botón flotante **+** en móvil.
+- `/categories`: administración del catálogo global; el listado muestra nombre, color y estado, y la descripción se consulta al abrir la edición de una categoría. Sin título interno «Catálogo global»; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
 - Drawer en móvil / Dialog en escritorio, calendario amplio, fecha con TZ coherente en Buenos Aires, zonas táctiles adecuadas y áreas seguras en modo PWA.
 - Las rutas heredadas de grupos no forman parte de la navegación principal; sus redirecciones/comportamiento deben respetar la implementación actual y la autorización.
 
