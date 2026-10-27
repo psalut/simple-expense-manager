@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, ReceiptText } from "lucide-react";
@@ -60,7 +60,7 @@ export function GroupExpenses({
   } | null>(null);
   const [newExpenseKey, setNewExpenseKey] = useState<number | null>(null);
   const [feedback, setFeedback] = useState("");
-  const instance = useRef(0);
+  const [instance, setInstance] = useState(0);
   const groupIsComplete =
     groups.find((group) => group.id === groupId)?.members.length === 2;
   const visibleExpenses = month
@@ -75,18 +75,20 @@ export function GroupExpenses({
   }
 
   function openExpense(expense: GroupExpenseView) {
-    instance.current += 1;
+    const key = instance + 1;
+    setInstance(key);
     setActiveExpense({
       expense,
       readOnly: expense.payerUserId !== currentUserId,
-      key: instance.current,
+      key,
     });
   }
 
   function addExpense() {
     if (!groupIsComplete || !allowCreate) return;
-    instance.current += 1;
-    setNewExpenseKey(instance.current);
+    const key = instance + 1;
+    setInstance(key);
+    setNewExpenseKey(key);
     setActiveExpense(null);
     setFeedback("");
   }
@@ -108,7 +110,7 @@ export function GroupExpenses({
                 ", " +
                 formatArs(expense.amountCents)
               }
-              className="flex min-h-[4.5rem] w-full items-center justify-between gap-4 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/30"
+              className="flex min-h-[4.5rem] w-full items-center justify-between gap-4 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"
             >
               <span className="flex min-w-0 flex-1 items-center gap-3">
                 <span
@@ -161,7 +163,7 @@ export function GroupExpenses({
             <Link
               href={"/household?month=" + shiftMonth(month, -1)}
               aria-label="Mes anterior"
-              className="grid size-11 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+              className="grid size-11 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
             >
               <ChevronLeft aria-hidden="true" />
             </Link>
@@ -171,7 +173,7 @@ export function GroupExpenses({
             <Link
               href={"/household?month=" + shiftMonth(month, 1)}
               aria-label="Mes siguiente"
-              className="grid size-11 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+              className="grid size-11 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
             >
               <ChevronRight aria-hidden="true" />
             </Link>
@@ -196,7 +198,7 @@ export function GroupExpenses({
                 return (
                   <li key={member.userId}>
                     <details>
-                      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/30 [&::-webkit-details-marker]:hidden">
+                      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
                         <span className="min-w-0 truncate font-medium">Ver desglose</span>
                         <span className="min-w-0 text-right [overflow-wrap:anywhere]">
                           <span className="block text-xs text-muted-foreground">{status}</span>
@@ -232,7 +234,7 @@ export function GroupExpenses({
 
       <section aria-label="Gastos compartidos" className="space-y-3">
         {feedback && (
-          <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
+          <p className="text-sm text-success" role="status">
             {feedback}
           </p>
         )}

@@ -180,14 +180,14 @@ export function CategoryCatalog({
             La reasignación y el borrado se guardan juntos. No se muestran datos del historial de gastos.
           </p>
           {replacementCategories.length === 0 && (
-            <p className="text-sm text-destructive" role="status">
+            <p className="text-sm text-destructive-foreground" role="status">
               No hay categorías activas elegibles. Creá o restaurá una categoría antes de eliminar esta.
             </p>
           )}
         </div>
       )}
       {confirmationError && (
-        <p className="text-sm text-destructive" role="alert">{confirmationError}</p>
+        <p className="text-sm text-destructive-foreground" role="alert">{confirmationError}</p>
       )}
       <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
         <Button
@@ -232,8 +232,8 @@ export function CategoryCatalog({
 
       <section aria-label="Catálogo de categorías" className="mt-4 space-y-4">
 
-      {feedback && <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">{feedback}</p>}
-      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+      {feedback && <p className="text-sm text-success" role="status">{feedback}</p>}
+      {error && <p className="text-sm text-destructive-foreground" role="alert">{error}</p>}
 
       {categories.length > 0 ? (
         <ul className="divide-y divide-border border-y border-border">
@@ -277,7 +277,7 @@ export function CategoryCatalog({
         </Button>
 
         {archivesOpen && archivedQuery.isError && !archived && (
-          <p className="mt-3 text-sm text-destructive" role="alert">
+          <p className="mt-3 text-sm text-destructive-foreground" role="alert">
             No se pudieron cargar las categorías archivadas. Intentá cerrar y abrir esta sección.
           </p>
         )}
@@ -448,7 +448,7 @@ function CategoryCard({
       <Menu.Root>
         <Menu.Trigger
           aria-label={"Acciones de " + category.name}
-          className="grid size-10 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+          className="grid size-10 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
         >
           <MoreHorizontal aria-hidden="true" className="size-5" />
         </Menu.Trigger>
@@ -467,7 +467,7 @@ function CategoryCard({
           )}
           {onArchive && (
             <Menu.Item
-              className="flex min-h-11 cursor-default items-center gap-2 rounded-lg px-3 text-sm text-destructive outline-none data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive data-[disabled]:opacity-50"
+              className="flex min-h-11 cursor-default items-center gap-2 rounded-lg px-3 text-sm text-destructive-foreground outline-none data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive-foreground data-[disabled]:opacity-50"
               disabled={disabled}
               onClick={onArchive}
             >
@@ -487,7 +487,7 @@ function CategoryCard({
           )}
           {onDelete && (
             <Menu.Item
-              className="flex min-h-11 cursor-default items-center gap-2 rounded-lg px-3 text-sm text-destructive outline-none data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive data-[disabled]:opacity-50"
+              className="flex min-h-11 cursor-default items-center gap-2 rounded-lg px-3 text-sm text-destructive-foreground outline-none data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive-foreground data-[disabled]:opacity-50"
               disabled={disabled}
               onClick={onDelete}
             >

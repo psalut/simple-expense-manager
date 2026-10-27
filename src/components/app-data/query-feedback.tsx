@@ -17,7 +17,7 @@ export function StaleDataNotice() {
 export function QueryUnavailable({ onRetry }: { onRetry: () => void }) {
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 sm:px-6 sm:py-10">
-      <p className="text-sm leading-6 text-destructive" role="alert">
+      <p className="text-sm leading-6 text-destructive-foreground" role="alert">
         {getPrivateDataErrorMessage()}
       </p>
       <Button type="button" variant="outline" className="min-h-11" onClick={onRetry}>

@@ -32,6 +32,6 @@ export function HouseholdOnboarding({ empty, canJoin }: { empty: boolean; canJoi
         <Input id="household-code" className="min-h-11" value={code} onChange={(event) => setCode(event.target.value)} required maxLength={50} autoComplete="off" />
         <Button type="submit" className="min-h-11" disabled={pending || !code.trim()}>{pending ? "Vinculando…" : "Unirme a Casa"}</Button>
       </form> : null}
-    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    {error && <p role="alert" className="text-sm text-destructive-foreground">{error}</p>}
   </section>;
 }

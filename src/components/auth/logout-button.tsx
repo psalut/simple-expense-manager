@@ -47,7 +47,7 @@ export function LogoutButton() {
         {isLoading ? "Cerrando sesión..." : "Cerrar sesión"}
       </Button>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive-foreground">
           {error}
         </p>
       )}

@@ -41,7 +41,7 @@ export default async function GroupDetailPage({
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 sm:px-6 sm:py-10">
       <Link
         href="/household"
-        className="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
       >
         <ArrowLeft size={16} aria-hidden="true" />
         Volver a Casa
@@ -58,6 +58,7 @@ export default async function GroupDetailPage({
         expenses={overview.expenses}
         balances={overview.balances}
         today={currentDateInBuenosAires()}
+        account={user}
       />
     </main>
   );

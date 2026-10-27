@@ -34,7 +34,7 @@ export function DatePicker({
   const [open, setOpen] = useState(false);
   const selectedLabel = value ? formatDatePickerLabel(value) : "Elegí una fecha";
   const triggerClassName = cn(
-    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-input bg-background px-3 text-left text-base outline-none transition-[color,box-shadow] hover:bg-muted/35 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 data-[invalid]:border-destructive data-[invalid]:ring-3 data-[invalid]:ring-destructive/20 md:text-sm",
+    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-input bg-background px-3 text-left text-base outline-none transition-[color,box-shadow] hover:bg-muted/35 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring data-[invalid]:border-destructive data-[invalid]:ring-3 data-[invalid]:ring-destructive md:text-sm",
     className,
   );
   const triggerContent = (

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog } from "@base-ui/react/dialog";
 import { Drawer } from "@base-ui/react/drawer";
-import { X } from "lucide-react";
 import {
   createExpenseAction,
   deleteExpenseAction,
@@ -31,7 +30,7 @@ import { invalidateExpenseRelatedData } from "@/lib/app-data/query-keys";
 import { cn } from "@/lib/utils";
 
 const expenseControlClassName =
-  "h-11 min-h-11 rounded-xl border-input bg-input/50 px-3 py-2 text-base font-normal text-foreground placeholder:text-muted-foreground md:text-base";
+  "h-11 min-h-11 rounded-xl border-input bg-background px-3 py-2 text-base font-normal text-foreground placeholder:text-muted-foreground md:text-base";
 
 export type ExpenseGroupOption = {
   id: string;
@@ -362,7 +361,7 @@ export function ExpenseEditorDialog({
 
   const deleteConfirmationBody = (
     <>
-      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+      {error && <p className="text-sm text-destructive-foreground" role="alert">{error}</p>}
       <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
         <Button
           type="button"
@@ -434,7 +433,7 @@ export function ExpenseEditorDialog({
               required
               placeholder="0,00"
               aria-describedby="expense-amount-help"
-              className={`${expenseControlClassName} h-14 min-h-14 pl-9 text-2xl font-semibold tabular-nums md:text-2xl`}
+              className={`${expenseControlClassName} h-14 min-h-14 pl-9 text-xl font-semibold tabular-nums md:text-xl`}
             />
           </div>
           <p id="expense-amount-help" className="sr-only">
@@ -528,7 +527,10 @@ export function ExpenseEditorDialog({
               <div className="min-w-0">
                 <Label
                   htmlFor="expense-shared"
-                  className={canShare ? "cursor-pointer font-medium" : "font-medium"}
+                  className={cn(
+                    "text-base font-normal text-foreground",
+                    canShare && "cursor-pointer",
+                  )}
                 >
                   Compartido
                 </Label>
@@ -542,7 +544,7 @@ export function ExpenseEditorDialog({
                 disabled={!canShare && !shared}
                 onClick={() => changeShared(!shared)}
                 className={
-                  "relative h-11 w-14 shrink-0 rounded-full bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 before:absolute before:left-1/2 before:top-1/2 before:h-7 before:w-12 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:transition-colors " +
+                  "relative h-11 w-14 shrink-0 rounded-full bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 before:absolute before:left-1/2 before:top-1/2 before:h-7 before:w-12 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:transition-colors " +
                   (shared
                     ? "before:bg-primary"
                     : "before:bg-muted-foreground/35")
@@ -568,7 +570,7 @@ export function ExpenseEditorDialog({
 
         </div>
         </div>
-        {error && <p className={"text-sm text-destructive " + (isMobile ? "px-5 sm:px-6" : "")} role="alert">{error}</p>}
+        {error && <p className={"text-sm text-destructive-foreground " + (isMobile ? "px-5 sm:px-6" : "")} role="alert">{error}</p>}
 
         <div
           className={
@@ -689,7 +691,7 @@ export function ExpenseEditorDialog({
                       <Drawer.Title
                         ref={dateHeadingRef}
                         tabIndex={-1}
-                        className="text-xl font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+                        className="text-xl font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring"
                       >
                         Seleccionar fecha
                       </Drawer.Title>
@@ -739,17 +741,6 @@ export function ExpenseEditorDialog({
                           </Drawer.Description>
                         )}
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-11 shrink-0"
-                        aria-label="Cerrar"
-                        onClick={() => handleOpenChange(false)}
-                        disabled={isSaving}
-                      >
-                        <X aria-hidden="true" />
-                      </Button>
                     </div>
                     {readOnly ? (
                       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6">
@@ -782,17 +773,6 @@ export function ExpenseEditorDialog({
                 </Dialog.Description>
               )}
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-11 shrink-0"
-              aria-label="Cerrar"
-              onClick={() => handleOpenChange(false)}
-              disabled={isSaving}
-            >
-              <X aria-hidden="true" />
-            </Button>
           </div>
           {content}
         </Dialog.Popup>

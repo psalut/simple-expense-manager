@@ -110,9 +110,9 @@ export function GroupDetail({
             <Link2 aria-hidden="true" />
             {isPending ? "Preparando…" : code ? "Reemplazar código" : "Generar invitación"}
           </Button>
-        {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+        {error && <p className="text-sm text-destructive-foreground" role="alert">{error}</p>}
         {feedback && (
-          <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
+          <p className="text-sm text-success" role="status">
             {feedback}
           </p>
         )}

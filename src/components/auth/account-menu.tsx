@@ -49,7 +49,7 @@ export function AccountMenu({
     <details ref={menuRef} className="group relative">
       <summary
         aria-label="Abrir opciones de cuenta"
-        className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 [&::-webkit-details-marker]:hidden"
+        className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
       >
         <span className="grid size-9 place-items-center rounded-full bg-secondary text-secondary-foreground">
           <span className="text-sm font-semibold" aria-hidden="true">

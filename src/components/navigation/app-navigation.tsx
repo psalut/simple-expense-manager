@@ -71,7 +71,7 @@ export function AppNavigation({
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
+                className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
               >
                 {label}
               </Link>
@@ -94,7 +94,7 @@ export function AppNavigation({
                   <Link
                     href={href}
                     aria-current={active ? "page" : undefined}
-                    className="flex min-h-16 w-full flex-col items-center justify-center gap-1 border-t-2 border-transparent px-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/30 aria-[current=page]:border-primary aria-[current=page]:bg-muted/60 aria-[current=page]:text-foreground"
+                    className="flex min-h-16 w-full flex-col items-center justify-center gap-1 border-t-2 border-transparent px-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring aria-[current=page]:border-primary aria-[current=page]:bg-muted/60 aria-[current=page]:text-foreground"
                   >
                     <Icon size={20} aria-hidden="true" />
                     <span className="max-w-full truncate">{label}</span>

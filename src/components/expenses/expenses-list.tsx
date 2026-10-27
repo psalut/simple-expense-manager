@@ -54,7 +54,7 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
           <Link
             href={"/?month=" + shiftMonth(month, -1)}
             aria-label="Mes anterior"
-            className="grid size-11 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+            className="grid size-11 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
           >
             <ChevronLeft aria-hidden="true" />
           </Link>
@@ -67,13 +67,13 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
           <Link
             href={"/?month=" + shiftMonth(month, 1)}
             aria-label="Mes siguiente"
-            className="grid size-11 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+            className="grid size-11 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
           >
             <ChevronRight aria-hidden="true" />
           </Link>
         </nav>
       </header>
-      {feedback && <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-300" role="status">{feedback}</p>}
+      {feedback && <p className="mt-4 text-sm text-success" role="status">{feedback}</p>}
 
       {expenses.length === 0 ? (
         <section className="mt-10 max-w-xl space-y-4" aria-labelledby="empty-expenses-heading">
@@ -109,7 +109,7 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
                       type="button"
                       onClick={() => openEditor(expense)}
                       aria-label={"Editar " + expense.description + ", " + formatArs(expense.amountCents)}
-                      className="flex min-h-16 w-full items-center justify-between gap-3 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/30"
+                      className="flex min-h-16 w-full items-center justify-between gap-3 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"
                     >
                       <span className="flex min-w-0 flex-1 items-center gap-3">
                         <span

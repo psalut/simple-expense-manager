@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-27T21:42:46Z",
+  "title": "Design System: Casa",
+  "extensions": {
+    "colorMeta": {
+      "bordeaux-accion": {
+        "role": "primary",
+        "displayName": "Bordeaux",
+        "canonical": "#6A041D",
+        "tonalRamp": [
+          "oklch(0.15 0.060 17.0)",
+          "oklch(0.25 0.100 17.0)",
+          "oklch(0.35 0.130 17.0)",
+          "oklch(0.45 0.130 17.0)",
+          "oklch(0.55 0.130 17.0)",
+          "oklch(0.68 0.130 17.0)",
+          "oklch(0.82 0.101 17.0)",
+          "oklch(0.95 0.025 17.0)"
+        ]
+      },
+      "grey-olive-acompanamiento": {
+        "role": "secondary",
+        "displayName": "Grey Olive",
+        "canonical": "#778174",
+        "tonalRamp": [
+          "oklch(0.15 0.023 138.5)",
+          "oklch(0.25 0.023 138.5)",
+          "oklch(0.35 0.023 138.5)",
+          "oklch(0.45 0.023 138.5)",
+          "oklch(0.55 0.023 138.5)",
+          "oklch(0.68 0.023 138.5)",
+          "oklch(0.82 0.023 138.5)",
+          "oklch(0.95 0.023 138.5)"
+        ]
+      },
+      "ash-grey-superficie": {
+        "role": "supporting surface",
+        "displayName": "Ash Grey",
+        "canonical": "#A1A89F",
+        "tonalRamp": [
+          "oklch(0.15 0.015 138.7)",
+          "oklch(0.25 0.015 138.7)",
+          "oklch(0.35 0.015 138.7)",
+          "oklch(0.45 0.015 138.7)",
+          "oklch(0.55 0.015 138.7)",
+          "oklch(0.68 0.015 138.7)",
+          "oklch(0.82 0.015 138.7)",
+          "oklch(0.95 0.015 138.7)"
+        ]
+      },
+      "bone-neutro-calido": {
+        "role": "neutral surface",
+        "displayName": "Bone",
+        "canonical": "#EDE5D6",
+        "tonalRamp": [
+          "oklch(0.15 0.022 83.3)",
+          "oklch(0.25 0.022 83.3)",
+          "oklch(0.35 0.022 83.3)",
+          "oklch(0.45 0.022 83.3)",
+          "oklch(0.55 0.022 83.3)",
+          "oklch(0.68 0.022 83.3)",
+          "oklch(0.82 0.022 83.3)",
+          "oklch(0.95 0.022 83.3)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Inter",
+        "purpose": "Títulos y texto de la interfaz cotidiana."
+      },
+      "mono": {
+        "displayName": "Geist Mono",
+        "purpose": "Valores o referencias técnicas cuando haga falta distinguirlos."
+      }
+    },
+    "shadows": [
+      {
+        "name": "touch-control",
+        "value": "0 3px 8px rgba(24, 24, 24, 0.16), 0 1px 2px rgba(24, 24, 24, 0.10)",
+        "purpose": "Elevación táctil propuesta para botones y acciones flotantes."
+      },
+      {
+        "name": "interactive-surface",
+        "value": "0 2px 8px rgba(24, 24, 24, 0.10), 0 1px 2px rgba(24, 24, 24, 0.06)",
+        "purpose": "Separación propuesta para superficies interactivas sobre blanco o Bone."
+      },
+      {
+        "name": "overlay",
+        "value": "0 12px 32px rgba(24, 24, 24, 0.18)",
+        "purpose": "Capa elevada propuesta para diálogos y menús flotantes."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "180ms cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Transiciones breves de hover y elevación, respetando movimiento reducido."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal cálida, táctil y de alto contraste.",
+      "html": "<button class=\"ds-btn-primary\">Guardar</button>",
+      "css": ".ds-btn-primary { background: #6A041D; color: #FFFFFF; min-height: 44px; padding: 0 18px; border: 0; border-radius: 16px; font: 600 16px Inter, sans-serif; box-shadow: 0 3px 8px rgba(24, 24, 24, 0.16), 0 1px 2px rgba(24, 24, 24, 0.10); transition: transform 180ms cubic-bezier(0.2, 0, 0, 1), box-shadow 180ms cubic-bezier(0.2, 0, 0, 1), background 180ms cubic-bezier(0.2, 0, 0, 1); } .ds-btn-primary:hover { background: #570319; transform: translateY(-1px); box-shadow: 0 5px 12px rgba(24, 24, 24, 0.18); } .ds-btn-primary:focus-visible { outline: 3px solid #6A041D; outline-offset: 3px; } .ds-btn-primary:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(24, 24, 24, 0.16); } .ds-btn-primary:disabled { opacity: 0.58; box-shadow: none; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo claro con borde reconocible y foco accesible.",
+      "html": "<input class=\"ds-input\" aria-label=\"Nombre del gasto\" placeholder=\"Nombre del gasto\" />",
+      "css": ".ds-input { width: 100%; min-height: 48px; padding: 0 14px; color: #181818; background: #FFFFFF; border: 1px solid #778174; border-radius: 16px; font: 400 16px Inter, sans-serif; } .ds-input::placeholder { color: #595959; } .ds-input:focus-visible { outline: 3px solid #6A041D; outline-offset: 2px; border-color: #6A041D; } .ds-input:disabled { color: #595959; background: #EDE5D6; opacity: 0.7; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Superficie cálida elevada para agrupar contenido relacionado.",
+      "html": "<section class=\"ds-card\"><h3>Gastos compartidos</h3><p>Resumen del grupo</p></section>",
+      "css": ".ds-card { padding: 20px; color: #181818; background: #EDE5D6; border: 1px solid rgba(119, 129, 116, 0.45); border-radius: 24px; box-shadow: 0 2px 8px rgba(24, 24, 24, 0.10), 0 1px 2px rgba(24, 24, 24, 0.06); font-family: Inter, sans-serif; } .ds-card h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; } .ds-card p { margin: 0; color: #454545; font-size: 15px; line-height: 1.5; }"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "navigation-mobile",
+      "description": "Navegación móvil de tres secciones con estado activo explícito.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Secciones\"><a href=\"#\">Gastos</a><a href=\"#\" aria-current=\"page\">Casa</a><a href=\"#\">Categorías</a></nav>",
+      "css": ".ds-nav { display: flex; justify-content: space-around; min-height: 64px; background: #FFFFFF; border-top: 1px solid #D8D8D8; font: 500 14px Inter, sans-serif; } .ds-nav a { display: grid; place-items: center; flex: 1; min-height: 64px; color: #595959; text-decoration: none; border-top: 3px solid transparent; } .ds-nav a[aria-current=\"page\"] { color: #181818; background: #EDE5D6; border-top-color: #6A041D; } .ds-nav a:focus-visible { outline: 3px solid #6A041D; outline-offset: -3px; }"
+    },
+    {
+      "name": "Floating Action Button",
+      "kind": "button",
+      "refersTo": "button-floating-action",
+      "description": "Acceso rápido y consistente a crear en las secciones principales.",
+      "html": "<button class=\"ds-fab\" aria-label=\"Agregar\"><span aria-hidden=\"true\">+</span></button>",
+      "css": ".ds-fab { display: grid; place-items: center; width: 56px; height: 56px; color: #FFFFFF; background: #6A041D; border: 0; border-radius: 50%; box-shadow: 0 3px 8px rgba(24, 24, 24, 0.16), 0 1px 2px rgba(24, 24, 24, 0.10); font: 400 28px Inter, sans-serif; transition: transform 180ms cubic-bezier(0.2, 0, 0, 1), box-shadow 180ms cubic-bezier(0.2, 0, 0, 1); } .ds-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(24, 24, 24, 0.20); } .ds-fab:focus-visible { outline: 3px solid #6A041D; outline-offset: 3px; } .ds-fab:active { transform: translateY(1px); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Casa serena",
+    "overview": "Casa se siente cálida, íntima y práctica: acompaña la organización cotidiana de dos personas sin convertir cada gasto en una alerta. La paleta aprobada combina un bordó reservado para acciones clave con verdes apagados de acompañamiento y un neutro hueso cálido. El blanco y la tinta oscura actuales siguen sosteniendo la legibilidad y la claridad.\n\nLa experiencia conserva el enfoque mobile-first y la identidad Rhea que ya usa la aplicación. Los botones y superficies deben sentirse más táctiles, con elevación perceptible donde ayude a reconocer una acción o una capa. Esta dirección queda documentada para la futura aplicación de color; los estilos activos todavía son los definidos en `src/app/globals.css`.",
+    "keyCharacteristics": [
+      "Cálida, serena e íntima, con una jerarquía práctica.",
+      "Bordó escaso para acciones importantes y estados seleccionados.",
+      "Verdes de apoyo y superficies hueso equilibrados con blanco y tinta de alto contraste.",
+      "Controles y superficies táctiles, con elevación usada para comunicar interacción y profundidad.",
+      "Criterio visual consistente entre Gastos, Casa y Categorías."
+    ],
+    "rules": [
+      {
+        "name": "The Accent Rarity Rule",
+        "body": "Bordeaux aparece en acciones clave, selección y foco; su uso medido mantiene clara la jerarquía.",
+        "section": "colors"
+      },
+      {
+        "name": "The Contrast Before Warmth Rule",
+        "body": "Una superficie cálida nunca justifica texto, iconos o límites funcionales con contraste insuficiente.",
+        "section": "colors"
+      },
+      {
+        "name": "The Same House Rule",
+        "body": "Gastos, Casa y Categorías comparten jerarquía de títulos, márgenes, comportamiento del botón flotante y estados de navegación. Las diferencias entre secciones deben responder a su contenido, no a estilos arbitrarios.",
+        "section": "layout"
+      },
+      {
+        "name": "The Layered Touch Rule",
+        "body": "La elevación comunica qué se puede tocar y qué está por encima; debe ser más visible en controles accionables que en contenido pasivo.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reservar Bordeaux para acciones clave, selección y foco.",
+      "Do usar Grey Olive como acento de apoyo y como límite funcional solo cuando el contraste cumpla el mínimo no textual.",
+      "Do limitar Ash Grey a superficies y elementos no esenciales.",
+      "Do distinguir Bone del blanco con una señal de profundidad o límite accesible.",
+      "Do mantener rojo destructivo, verde de éxito y advertencia como estados semánticos separados de la marca.",
+      "Do proporcionar objetivos táctiles de al menos 44 px para controles principales y estados de foco visibles por teclado.",
+      "Do comprobar estados hover, focus-visible, active y disabled con contraste y movimiento reducido.",
+      "Do repetir los patrones principales en Gastos, Casa y Categorías."
+    ],
+    "donts": [
+      "Don't usar Grey Olive como texto pequeño sobre blanco o Bone.",
+      "Don't usar Ash Grey para texto, foco, iconos esenciales o límites de controles.",
+      "Don't usar Bone sobre blanco como única señal de separación.",
+      "Don't codificar éxito, advertencia o error solamente con el color de marca.",
+      "Don't extender sombras fuertes a todas las filas o elementos pasivos.",
+      "Don't aplicar la paleta aprobada a los estilos activos hasta el paso de implementación de color."
+    ]
+  }
+}
