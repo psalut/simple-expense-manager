@@ -2,6 +2,7 @@ import { getHouseholdForUser } from "@/lib/server/household";
 import { listCategories } from "@/lib/server/categories";
 import { getAuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 import { getPersonalExpenseMonth } from "@/lib/server/expenses";
+import { getPersonalIncomeMonth } from "@/lib/server/incomes";
 import { currentDateInBuenosAires, normalizeExpenseMonth, shiftMonth } from "@/lib/expenses/format";
 import { privateAppDataRoute } from "@/lib/server/app-data-response";
 
@@ -15,14 +16,16 @@ export async function GET(request: Request) {
 
   return privateAppDataRoute("expenses", async () => {
     const account = await getAuthenticatedUserProfile();
-    const [monthData, categories, household] = await Promise.all([
+    const [monthData, incomes, categories, household] = await Promise.all([
       getPersonalExpenseMonth(account.id, month + "-01", nextMonth + "-01"),
+      getPersonalIncomeMonth(account.id, month + "-01", nextMonth + "-01"),
       listCategories(),
       getHouseholdForUser(account.id),
     ]);
 
     return {
       expenses: monthData.expenses,
+      incomes,
       monthlyTotal: monthData.monthlyTotal,
       categories,
       groups: household.space ? [household.space] : [],

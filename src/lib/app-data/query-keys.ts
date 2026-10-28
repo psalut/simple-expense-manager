@@ -31,6 +31,15 @@ export async function invalidateExpenseRelatedData(
   );
 }
 
+export async function invalidatePersonalExpenseData(
+  queryClient: QueryClient,
+  userId: string,
+) {
+  return queryClient.invalidateQueries({
+    queryKey: appDataQueryKeys.expenses(userId),
+  });
+}
+
 export async function invalidateAllPrivateAppData(
   queryClient: QueryClient,
   userId: string,

@@ -23,9 +23,11 @@ await admin`CREATE SCHEMA ${admin(integrationSchema)}`;
 try {
   const [identity] = await integrationSql`SELECT current_schema() AS schema`;
   if (identity.schema !== integrationSchema) throw new Error("Refusing to initialize: isolated search_path was not honored");
-  const baseline = (await readFile("drizzle/0000_initial_v07.sql", "utf8")).replaceAll('"public"', '"' + integrationSchema + '"');
-  for (const statement of baseline.split("--> statement-breakpoint")) {
-    if (statement.trim()) await integrationSql.unsafe(statement);
+  for (const migrationPath of ["drizzle/0000_initial_v07.sql", "drizzle/0002_personal_incomes.sql"]) {
+    const migration = (await readFile(migrationPath, "utf8")).replaceAll('"public"', '"' + integrationSchema + '"');
+    for (const statement of migration.split("--> statement-breakpoint")) {
+      if (statement.trim()) await integrationSql.unsafe(statement);
+    }
   }
 } catch (error) {
   await integrationSql.end();

@@ -5,6 +5,7 @@ import type {
   GroupExpenseView,
   PersonalExpenseView,
 } from "@/lib/server/expenses";
+import type { PersonalIncomeView } from "@/lib/server/incomes";
 import type { SharedSpaceOverview } from "@/lib/shared-spaces/types";
 
 export type CategoryTransport = Omit<CategoryView, "createdAt" | "updatedAt"> & {
@@ -14,6 +15,7 @@ export type CategoryTransport = Omit<CategoryView, "createdAt" | "updatedAt"> & 
 
 export type ExpensePageData = {
   expenses: PersonalExpenseView[];
+  incomes: PersonalIncomeView[];
   monthlyTotal: string;
   categories: CategoryView[];
   groups: ExpenseGroupOption[];

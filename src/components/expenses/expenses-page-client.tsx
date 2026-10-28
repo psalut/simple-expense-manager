@@ -21,6 +21,7 @@ export function ExpensesPageClient({ month, today }: { month: string; today: str
       {query.isError && <StaleDataNotice />}
       <ExpensesList
         expenses={query.data.expenses}
+        incomes={query.data.incomes}
         categories={query.data.categories}
         groups={query.data.groups}
         currentUserId={user.id}

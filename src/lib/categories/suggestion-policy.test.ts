@@ -3,6 +3,7 @@ import {
   resolveCategorySuggestion,
   keepOnlyCurrentlyActiveSuggestion,
   shouldApplyAutomaticSuggestion,
+  shouldRequestCategorySuggestion,
   suggestionThreshold,
   withSuggestionTimeout,
 } from "./suggestion-policy";
@@ -68,5 +69,18 @@ describe("Jev category suggestion policy", () => {
     expect(shouldApplyAutomaticSuggestion(1, 2, false)).toBe(false);
     expect(shouldApplyAutomaticSuggestion(2, 2, true)).toBe(false);
     expect(shouldApplyAutomaticSuggestion(2, 2, false)).toBe(true);
+  });
+
+  it("requests suggestions only for new expense drafts, never for income", () => {
+    const newExpense = {
+      open: true,
+      readOnly: false,
+      isIncome: false,
+      hasExistingMovement: false,
+      manualSelectionMade: false,
+      description: "Sueldo mensual",
+    };
+    expect(shouldRequestCategorySuggestion(newExpense)).toBe(true);
+    expect(shouldRequestCategorySuggestion({ ...newExpense, isIncome: true })).toBe(false);
   });
 });

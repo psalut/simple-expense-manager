@@ -1,6 +1,6 @@
 # Casa — Idea de producto y seguimiento
 
-**Versión documental:** v0.7 (evolución single-household) · **Actualizado:** 27 de octubre de 2026  
+**Versión documental:** v0.8 (ingresos personales) · **Actualizado:** 27 de octubre de 2026
 **Documento complementario:** `Especificacion_tecnica_gestor_gastos_MVP_v0.7_2026-10-27_actualizada.md`
 
 ## 1. Estado actual
@@ -9,10 +9,13 @@
 
 La refactorización a un único hogar y la implementación PWA fueron confirmadas por el usuario como correctas en producción. La optimización más reciente de navegación con caché fue implementada en la rama `perf/navigation-caching` y probada satisfactoriamente por el usuario **en local**. **No consta todavía commit, merge ni despliegue de esa optimización**; distinguirla de la versión publicada hasta que se integre a `main`.
 
+El registro de ingresos personales está implementado en el árbol de trabajo. Aún no tiene commit, migración aplicada, merge ni despliegue.
+
 ## 2. Principios del producto
 
 - **Dos usuarios, un hogar:** existe un único espacio compartido llamado **Casa**, con máximo dos integrantes. No hay administración de múltiples grupos en la experiencia habitual.
 - **Una sola carga por gasto:** un gasto se registra una vez, como privado o compartido.
+- **Ingresos personales:** cada persona puede registrar ingresos visibles solo para ella; no participan en la distribución de gastos de Casa.
 - **Privacidad:** en Gastos cada persona ve los gastos que cargó/pagó; en Casa ambos ven los gastos compartidos, incluidos los que pagó la otra persona.
 - **Simplicidad:** reparto automático 50/50, sin liquidaciones, transferencias ni presupuestos.
 - **Mobile-first:** tres pestañas, formularios cómodos, navegación inferior y experiencia PWA instalable.
@@ -22,10 +25,10 @@ La refactorización a un único hogar y la implementación PWA fueron confirmada
 
 ### Gastos (`/`)
 
-- Historial del usuario del mes elegido: gastos privados más los compartidos que pagó, sin duplicaciones; los compartidos se identifican con un ícono.
-- Selector de mes y **total mensual centrado inmediatamente debajo** dentro de un badge compacto bordó con texto blanco, mostrando solo el importe, sin rótulo ni descripción.
-- Encabezado compacto; alta de gasto en el encabezado en escritorio y con un botón flotante **+** en móvil.
-- Edición y eliminación únicamente de los gastos propios.
+- Historial personal del usuario del mes elegido: gastos privados, gastos compartidos que pagó e ingresos; cada ingreso se identifica por separado y no tiene categoría.
+- Selector de mes y **total gastado mensual centrado inmediatamente debajo** dentro de un badge compacto bordó con texto blanco, mostrando solo el importe. Debajo de la línea inferior de la sección del mes y antes de los movimientos, mostrar el neto personal dentro de un badge color hueso con la etiqueta «Saldo del mes», centrado y con igual espacio vertical hacia arriba y hacia abajo.
+- Encabezado compacto; alta de movimiento en el encabezado en escritorio y con un botón flotante **+** en móvil.
+- Edición y eliminación únicamente de los movimientos propios.
 
 ### Casa (`/household`)
 
@@ -46,13 +49,15 @@ Better Auth gestiona sesiones. El registro público está cerrado después de re
 
 ## 4. Registro de gastos
 
-Formulario reutilizado en Drawer móvil y Dialog de escritorio. Campos: importe positivo en ARS, detalle, categoría global activa y fecha. El detalle usa el placeholder «Ingresá un detalle». El importe agrupa los miles con puntos mientras se escribe, acepta coma o punto para ingresar hasta dos decimales y muestra dos cifras decimales si se ingresan centavos (por ejemplo, `500000` → `500.000` y `1020.8` → `1.020,80`). Desde Gastos, Compartido inicia apagado; desde Casa, inicia activado. No hay selector de hogar, grupo ni participantes. Al crear un gasto y confirmar el servidor la operación, se muestra un toast de éxito temporal.
+Formulario reutilizado en Drawer móvil y Dialog de escritorio. Al crear desde Gastos, el encabezado muestra «Nuevo movimiento» a la izquierda y un selector segmentado Gasto/Ingreso a la derecha, con Gasto seleccionado inicialmente. Gasto conserva importe positivo en ARS, detalle, categoría global activa, fecha y el selector Compartido apagado. Ingreso conserva importe, detalle y fecha; no muestra categoría ni selector compartido. Al editar, el título es «Editar gasto» o «Editar ingreso» y el tipo queda fijo. Al alternar durante el alta se limpian categoría y grupo, conservando importe, detalle y fecha. El detalle usa el placeholder «Ingresá un detalle». El importe agrupa los miles con puntos mientras se escribe, acepta coma o punto para ingresar hasta dos decimales y muestra dos cifras decimales si se ingresan centavos (por ejemplo, `500000` → `500.000` y `1020.8` → `1.020,80`). Desde Casa, Compartido inicia activado y no se muestra el selector de tipo ni se ofrecen ingresos. No hay selector de hogar, grupo ni participantes. Al guardar un movimiento y confirmar el servidor la operación, se muestra un toast de éxito temporal.
+
+Los ingresos se guardan en una entidad independiente con titular, importe en centavos, detalle y fecha. Son visibles solo para su titular. El saldo personal mensual suma los ingresos y resta los gastos del historial personal de ese mes; el total gastado conserva solo gastos. Los ingresos no afectan balances, deudas, repartos ni listados de Casa.
 
 Los gastos compartidos se reparten 50/50 entre los dos integrantes. Cuando el importe en centavos es impar, el centavo adicional corresponde al pagador. El pagador es el autor del gasto. Otros integrantes pueden consultar un gasto compartido en solo lectura, nunca editarlo o borrarlo.
 
 ## 5. Clasificación automática Jev
 
-Se mantiene la sugerencia de categorías con Jev mediante la API HTTP directa de TypeSafe AI. La selección manual tiene prioridad, la sugerencia no impide guardar el gasto y el catálogo global permanece como fuente de categorías elegibles. No se envían historiales de gastos, balances ni datos de la otra persona para clasificar.
+Se mantiene la sugerencia de categorías con Jev mediante la API HTTP directa de TypeSafe AI. Solo se solicitan sugerencias para gastos nuevos; Ingreso no ejecuta Jev. La selección manual tiene prioridad, la sugerencia no impide guardar el gasto y el catálogo global permanece como fuente de categorías elegibles. No se envían historiales de gastos, balances ni datos de la otra persona para clasificar.
 
 ## 6. PWA
 
@@ -78,6 +83,8 @@ Implementada en `perf/navigation-caching` y validada localmente por el usuario:
 ## 8. Estado de calidad y pendientes
 
 **Verificado en esta iteración de performance:** `pnpm lint`, TypeScript, **53 pruebas**, `git diff --check` y `pnpm build` con Turbopack (compilación exitosa según salida compartida por el usuario). El agente también compiló con webpack; un fallo anterior del worker CSS no se reprodujo al repetir el build local. La prueba de navegación local fue satisfactoria.
+
+**Verificado para ingresos personales en el árbol de trabajo:** 64 pruebas unitarias, lint, TypeScript y compilación webpack pasan. La compilación predeterminada de Turbopack quedó más de dos minutos en `compile` y se interrumpió. La prueba de integración no pudo conectarse al host de Neon por un fallo DNS (`ENOTFOUND`); la migración no fue aplicada.
 
 **Verificaciones anteriores:** refactorización Casa (46 unitarias y 14 de integración en esa etapa), permisos y flujos de gastos, uso de Neon con esquema reiniciado (`0000_initial_v07.sql` + `0001_single_household.sql`), creación de dos cuentas, cierre de registro, despliegue en Vercel e instalación real de la PWA en iPhone.
 

@@ -11,6 +11,7 @@ vi.mock("next/headers", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { createExpenseAction, deleteExpenseAction, updateExpenseAction } from "@/app/(app)/expenses/actions";
+import { createIncomeAction, deleteIncomeAction, updateIncomeAction } from "@/app/(app)/incomes/actions";
 import HomePage from "@/app/(app)/page";
 import GroupDetailPage from "@/app/(app)/groups/[id]/page";
 import { auth } from "@/lib/auth";
@@ -20,6 +21,7 @@ import {
   getGroupExpenseOverview,
   listPersonalExpenses,
 } from "@/lib/server/expenses";
+import { getPersonalIncomeMonth } from "@/lib/server/incomes";
 import {
   acceptSharedSpaceInvitation,
   createSharedSpace,
@@ -28,6 +30,7 @@ import {
 import { db } from "@/db";
 import { categories } from "@/db/categories-schema";
 import { expenses } from "@/db/expenses-schema";
+import { incomes } from "@/db/incomes-schema";
 import { sharedSpaces, sharedSpaceMembers } from "@/db/shared-space-schema";
 import { user } from "@/db/auth-schema";
 
@@ -53,6 +56,7 @@ type PersistedExpense = {
 const createdUserIds: string[] = [];
 const createdGroupNames: string[] = [];
 const createdExpenseIds: string[] = [];
+const createdIncomeIds: string[] = [];
 let accountA: TestAccount;
 let accountB: TestAccount;
 let accountC: TestAccount;
@@ -144,6 +148,9 @@ describe("E2E-24 server authorization against Neon/PostgreSQL", () => {
       if (createdExpenseIds.length) {
         await db.delete(expenses).where(inArray(expenses.id, createdExpenseIds));
       }
+      if (createdIncomeIds.length) {
+        await db.delete(incomes).where(inArray(incomes.id, createdIncomeIds));
+      }
       if (createdGroupNames.length) {
         await db.delete(sharedSpaces).where(inArray(sharedSpaces.name, createdGroupNames));
       }
@@ -189,6 +196,73 @@ describe("E2E-24 server authorization against Neon/PostgreSQL", () => {
     expect(personalView.some(({ id }) => id === sharedExpenseId)).toBe(false);
     expect(personalView.some(({ id }) => id === privateExpenseId)).toBe(false);
     expect(groupView.expenses.some(({ id }) => id === privateExpenseId)).toBe(false);
+  });
+
+  it("keeps income private and outside household balances even for direct server-action calls", async () => {
+    const balancesBefore = await readGroupBalances(mainGroupId, accountA);
+    const sharedAttempt = await asAccount(accountA, () =>
+      createIncomeAction({
+        amount: "15.00",
+        description: `E2E-24 shared income attempt ${RUN_ID}`,
+        incomeDate: TEST_DATE,
+        sharedSpaceId: mainGroupId,
+      }),
+    );
+    expect(sharedAttempt).toMatchObject({ success: false });
+
+    const created = await asAccount(accountA, () =>
+      createIncomeAction({
+        amount: "15.25",
+        description: `E2E-24 personal income ${RUN_ID}`,
+        incomeDate: TEST_DATE,
+      }),
+    );
+    if (!created.success) throw new Error("E2E-24 no pudo crear su ingreso personal descartable.");
+    createdIncomeIds.push(created.data.id);
+
+    const ownerUpdate = await asAccount(accountA, () =>
+      updateIncomeAction(created.data.id, {
+        amount: "16.75",
+        description: `E2E-24 updated personal income ${RUN_ID}`,
+        incomeDate: TEST_DATE,
+      }),
+    );
+    expect(ownerUpdate).toMatchObject({ success: true });
+
+    const visibleToOwner = await asAccount(accountA, () =>
+      getPersonalIncomeMonth(accountA.id, "2026-10-01", "2026-11-01"),
+    );
+    expect(visibleToOwner.find(({ id }) => id === created.data.id)).toMatchObject({
+      kind: "income",
+      amountCents: "1675",
+      description: `E2E-24 updated personal income ${RUN_ID}`,
+      incomeDate: TEST_DATE,
+    });
+    const visibleToOther = await asAccount(accountB, () =>
+      getPersonalIncomeMonth(accountB.id, "2026-10-01", "2026-11-01"),
+    );
+    expect(visibleToOther.some(({ id }) => id === created.data.id)).toBe(false);
+
+    const forgedUpdate = await asAccount(accountB, () =>
+      updateIncomeAction(created.data.id, {
+        amount: "999.99",
+        description: "forged update",
+        incomeDate: TEST_DATE,
+      }),
+    );
+    expect(forgedUpdate).toMatchObject({ success: false });
+    const forgedDelete = await asAccount(accountB, () =>
+      deleteIncomeAction(created.data.id),
+    );
+    expect(forgedDelete).toMatchObject({ success: false });
+    await expect(
+      asAccount(accountA, () => getPersonalIncomeMonth(accountA.id, "2026-10-01", "2026-11-01")),
+    ).resolves.toContainEqual(expect.objectContaining({ id: created.data.id, amountCents: "1675" }));
+    await expect(readGroupBalances(mainGroupId, accountA)).resolves.toEqual(balancesBefore);
+
+    const deleted = await asAccount(accountA, () => deleteIncomeAction(created.data.id));
+    expect(deleted).toMatchObject({ success: true });
+    createdIncomeIds.splice(createdIncomeIds.indexOf(created.data.id), 1);
   });
 
   it("rechaza el IDOR de edición de B con campos e identidad falsificados y conserva registro y balances", async () => {

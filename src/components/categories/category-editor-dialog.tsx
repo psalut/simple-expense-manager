@@ -119,7 +119,7 @@ export function CategoryEditorDialog({
           maxLength={500}
           rows={3}
           placeholder="Qué gastos incluye y cuáles deberían ir en otra categoría."
-          className="min-h-24 w-full resize-y rounded-xl border border-input bg-background px-3 py-2.5 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring md:text-sm"
+          className="min-h-24 w-full resize-y rounded-xl border border-input bg-background px-3 py-2.5 text-base outline-none placeholder:text-muted-foreground md:text-sm"
         />
         <p className="text-xs text-muted-foreground">
           Esta descripción también ayuda a Jev a sugerir la categoría correcta.
@@ -134,7 +134,7 @@ export function CategoryEditorDialog({
             aria-label="Elegir color de categoría"
             value={pickerColor}
             onChange={(event) => changeColor(event.target.value)}
-            className="size-11 cursor-pointer rounded-xl border border-input bg-background p-1 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
+            className="size-11 cursor-pointer rounded-xl border border-input bg-background p-1"
           />
           <Input
             id="category-color"

@@ -30,6 +30,7 @@ export class ExpenseError extends Error {
 }
 
 export type PersonalExpenseView = {
+  kind: "expense";
   id: string;
   amountCents: string;
   currency: "ARS";
@@ -82,6 +83,7 @@ export async function listPersonalExpenses(
 
   return rows.map((row) => ({
     ...row,
+    kind: "expense",
     amountCents: row.amountCents.toString(),
     currency: "ARS",
   }));
@@ -120,6 +122,7 @@ export async function getPersonalExpenseMonth(
       void monthlyTotal;
       return {
         ...expense,
+        kind: "expense" as const,
         amountCents: row.amountCents.toString(),
         currency: "ARS",
       };
@@ -201,6 +204,7 @@ export async function getGroupExpenseOverview(
       return {
         expenses: rows.map((row) => ({
           ...row,
+          kind: "expense" as const,
           amountCents: row.amountCents.toString(),
           currency: "ARS",
         })),

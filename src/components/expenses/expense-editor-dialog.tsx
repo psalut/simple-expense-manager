@@ -13,6 +13,11 @@ import {
   deleteExpenseAction,
   updateExpenseAction,
 } from "@/app/(app)/expenses/actions";
+import {
+  createIncomeAction,
+  deleteIncomeAction,
+  updateIncomeAction,
+} from "@/app/(app)/incomes/actions";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -21,14 +26,22 @@ import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select";
 import type { CategoryView } from "@/lib/categories/types";
 import { splitAmountCents } from "@/lib/expenses/policy";
-import { shouldApplyAutomaticSuggestion } from "@/lib/categories/suggestion-policy";
+import { switchMovementDraft } from "@/lib/expenses/movement-draft";
+import {
+  shouldApplyAutomaticSuggestion,
+  shouldRequestCategorySuggestion,
+} from "@/lib/categories/suggestion-policy";
 import { formatArs } from "@/lib/expenses/format";
 import type {
   GroupExpenseView,
   PersonalExpenseView,
 } from "@/lib/server/expenses";
+import type { PersonalIncomeView } from "@/lib/server/incomes";
 import { callServerAction } from "@/lib/action-result";
-import { invalidateExpenseRelatedData } from "@/lib/app-data/query-keys";
+import {
+  invalidateExpenseRelatedData,
+  invalidatePersonalExpenseData,
+} from "@/lib/app-data/query-keys";
 import { cn } from "@/lib/utils";
 
 const expenseControlClassName =
@@ -51,6 +64,8 @@ type Props = {
   categories: CategoryView[];
   today: string;
   initialExpense: PersonalExpenseView | GroupExpenseView | null;
+  initialIncome?: PersonalIncomeView | null;
+  allowIncomeCreation?: boolean;
   defaultGroupId?: string | null;
   defaultShared?: boolean;
   readOnly?: boolean;
@@ -65,6 +80,8 @@ export function ExpenseEditorDialog({
   categories,
   today,
   initialExpense,
+  initialIncome = null,
+  allowIncomeCreation = true,
   defaultGroupId = null,
   defaultShared = false,
   readOnly = false,
@@ -87,19 +104,29 @@ export function ExpenseEditorDialog({
     initialExpense?.sharedSpaceId ??
     defaultGroupId ??
     (defaultShared && completeGroups.length === 1 ? completeGroups[0].id : "");
+  const isExistingIncome = initialIncome !== null;
 
-  const [description, setDescription] = useState(initialExpense?.description ?? "");
+  const [isIncome, setIsIncome] = useState(isExistingIncome);
+  const [description, setDescription] = useState(
+    initialIncome?.description ?? initialExpense?.description ?? "",
+  );
   const [amount, setAmount] = useState(
-    initialExpense ? centsToInput(initialExpense.amountCents) : "",
+    initialIncome
+      ? centsToInput(initialIncome.amountCents)
+      : initialExpense
+        ? centsToInput(initialExpense.amountCents)
+        : "",
   );
   const [expenseDate, setExpenseDate] = useState(
-    initialExpense?.expenseDate ?? today,
+    initialIncome?.incomeDate ?? initialExpense?.expenseDate ?? today,
   );
   const [mobileDateSelectionOpen, setMobileDateSelectionOpen] = useState(false);
   const [draftExpenseDate, setDraftExpenseDate] = useState(expenseDate);
-  const [shared, setShared] = useState(initialShared);
-  const [groupId, setGroupId] = useState(initialGroupId);
-  const [categoryId, setCategoryId] = useState(initialExpense?.categoryId ?? "");
+  const [shared, setShared] = useState(isExistingIncome ? false : initialShared);
+  const [groupId, setGroupId] = useState(isExistingIncome ? "" : initialGroupId);
+  const [categoryId, setCategoryId] = useState(
+    isExistingIncome ? "" : initialExpense?.categoryId ?? "",
+  );
   const [error, setError] = useState("");
   const [suggestionStatus, setSuggestionStatus] =
     useState<SuggestionStatus>("idle");
@@ -163,13 +190,14 @@ export function ExpenseEditorDialog({
   const canShare = completeGroups.length === 1;
 
   useEffect(() => {
-    if (
-      !open ||
-      readOnly ||
-      initialExpense ||
-      manualCategorySelection.current ||
-      description.trim().length < 3
-    ) {
+    if (!shouldRequestCategorySuggestion({
+      open,
+      readOnly,
+      isIncome,
+      hasExistingMovement: Boolean(initialExpense || initialIncome),
+      manualSelectionMade: manualCategorySelection.current,
+      description,
+    })) {
       return;
     }
 
@@ -239,7 +267,35 @@ export function ExpenseEditorDialog({
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [categories, description, initialExpense, open, readOnly]);
+  }, [categories, description, initialExpense, initialIncome, isIncome, open, readOnly]);
+
+  function changeMovementType(nextIncome: boolean) {
+    if (initialExpense || initialIncome || readOnly || isSaving || !allowIncomeCreation) return;
+    const nextDraft = switchMovementDraft(
+      {
+        kind: isIncome ? "income" : "expense",
+        amount,
+        description,
+        date: expenseDate,
+        categoryId,
+        shared,
+        groupId,
+      },
+      nextIncome ? "income" : "expense",
+    );
+    setIsIncome(nextDraft.kind === "income");
+    setAmount(nextDraft.amount);
+    setDescription(nextDraft.description);
+    setExpenseDate(nextDraft.date);
+    setError("");
+    setCategoryId(nextDraft.categoryId);
+    setShared(nextDraft.shared);
+    setGroupId(nextDraft.groupId);
+    manualCategorySelection.current = false;
+    suggestionRequest.current += 1;
+    suggestionController.current?.abort();
+    setSuggestionStatus("idle");
+  }
 
   function changeShared(nextShared: boolean) {
     setError("");
@@ -283,19 +339,19 @@ export function ExpenseEditorDialog({
     submitting.current = true;
     setError("");
 
-    if (shared && !groupId) {
+    if (!isIncome && shared && !groupId) {
       setError(
         "Casa necesita dos integrantes vinculados para compartir este gasto.",
       );
       submitting.current = false;
       return;
     }
-    if (shared && !historicalShared && !completeGroups.some((group) => group.id === groupId)) {
+    if (!isIncome && shared && !historicalShared && !completeGroups.some((group) => group.id === groupId)) {
       setError("Ese grupo todavía necesita dos integrantes para compartir gastos.");
       submitting.current = false;
       return;
     }
-    if (!categoryId) {
+    if (!isIncome && !categoryId) {
       setError("Elegí una categoría para guardar el gasto.");
       submitting.current = false;
       return;
@@ -306,41 +362,58 @@ export function ExpenseEditorDialog({
       return;
     }
 
-    const draft = {
+    const expenseDraft = {
       amount,
       description,
       categoryId,
       expenseDate,
       sharedSpaceId: shared ? groupId : null,
     };
+    const incomeDraft = {
+      amount,
+      description,
+      incomeDate: expenseDate,
+    };
 
     startSaving(async () => {
       try {
-        const result = await callServerAction(() =>
-          initialExpense
-            ? updateExpenseAction(initialExpense.id, draft)
-            : createExpenseAction(draft),
-        );
+        const savingIncome = isIncome || initialIncome !== null;
+        const result = savingIncome
+          ? await callServerAction(() =>
+              initialIncome
+                ? updateIncomeAction(initialIncome.id, incomeDraft)
+                : createIncomeAction(incomeDraft),
+            )
+          : await callServerAction(() =>
+              initialExpense
+                ? updateExpenseAction(initialExpense.id, expenseDraft)
+                : createExpenseAction(expenseDraft),
+            );
         if (!result.success) {
           setError(result.error);
           return;
         }
-        void invalidateExpenseRelatedData(queryClient, currentUserId);
-        const outcome = initialExpense ? "updated" : "created";
+        if (savingIncome) {
+          void invalidatePersonalExpenseData(queryClient, currentUserId);
+        } else {
+          void invalidateExpenseRelatedData(queryClient, currentUserId);
+        }
+        const isUpdating = initialExpense !== null || initialIncome !== null;
+        const outcome = isUpdating ? "updated" : "created";
         if (outcome === "created") {
           toastManager.add({
-            id: "expense-created",
+            id: savingIncome ? "income-created" : "expense-created",
             type: "success",
-            title: "Gasto guardado",
+            title: savingIncome ? "Ingreso guardado" : "Gasto guardado",
             timeout: 3500,
             priority: "low",
           });
         }
         onOpenChange(false);
         onSaved(
-          initialExpense
-            ? "El gasto quedó actualizado."
-            : "El gasto quedó guardado.",
+          savingIncome
+            ? isUpdating ? "El ingreso quedó actualizado." : "El ingreso quedó guardado."
+            : isUpdating ? "El gasto quedó actualizado." : "El gasto quedó guardado.",
           outcome,
         );
       } finally {
@@ -349,30 +422,41 @@ export function ExpenseEditorDialog({
     });
   }
 
-  function removeExpense() {
-    if (!initialExpense || submitting.current) return;
+  function removeMovement() {
+    if ((!initialExpense && !initialIncome) || submitting.current) return;
     submitting.current = true;
     setError("");
     startSaving(async () => {
       try {
-        const result = await callServerAction(() =>
-          deleteExpenseAction(initialExpense.id),
-        );
+        const result = initialIncome
+          ? await callServerAction(() => deleteIncomeAction(initialIncome.id))
+          : await callServerAction(() => deleteExpenseAction(initialExpense!.id));
         if (!result.success) {
           setError(result.error);
           setShowDeleteConfirmation(false);
           return;
         }
-        void invalidateExpenseRelatedData(queryClient, currentUserId);
+        if (initialIncome) {
+          void invalidatePersonalExpenseData(queryClient, currentUserId);
+        } else {
+          void invalidateExpenseRelatedData(queryClient, currentUserId);
+        }
         setShowDeleteConfirmation(false);
         onOpenChange(false);
-        onSaved("El gasto se eliminó.", "deleted");
+        onSaved(
+          initialIncome ? "El ingreso se eliminó." : "El gasto se eliminó.",
+          "deleted",
+        );
       } finally {
         submitting.current = false;
       }
     });
   }
 
+  const deleteLabel = initialIncome ? "ingreso" : "gasto";
+  const deleteDescription = initialIncome
+    ? "Se quitará de tu historial personal."
+    : "Se quitará de tu historial y, si está compartido, también del balance de Casa.";
   const deleteConfirmationBody = (
     <>
       {error && <p className="text-sm text-destructive-foreground" role="alert">{error}</p>}
@@ -390,10 +474,10 @@ export function ExpenseEditorDialog({
           type="button"
           variant="destructive"
           className="min-h-11"
-          onClick={removeExpense}
+          onClick={removeMovement}
           disabled={isSaving}
         >
-          {isSaving ? "Eliminando…" : "Eliminar"}
+          {isSaving ? "Eliminando…" : `Eliminar ${deleteLabel}`}
         </Button>
       </div>
     </>
@@ -401,9 +485,15 @@ export function ExpenseEditorDialog({
 
   const title = readOnly
     ? "Detalle del gasto"
-    : initialExpense
-      ? "Editar gasto"
-      : "Nuevo gasto";
+    : initialIncome
+      ? "Editar ingreso"
+      : initialExpense
+        ? "Editar gasto"
+        : allowIncomeCreation
+          ? "Nuevo movimiento"
+          : "Nuevo gasto";
+  const showMovementTypeSelector =
+    !initialExpense && !initialIncome && !readOnly && allowIncomeCreation;
   const content = readOnly && initialExpense ? (
     <ReadOnlyExpense
       expense={initialExpense as GroupExpenseView}
@@ -453,7 +543,7 @@ export function ExpenseEditorDialog({
               required
               placeholder="0,00"
               aria-describedby="expense-amount-help"
-              className={`${expenseControlClassName} h-14 min-h-14 pl-9 text-xl font-semibold tabular-nums md:text-xl`}
+              className={`${expenseControlClassName} pl-9 font-semibold tabular-nums`}
             />
           </div>
           <p id="expense-amount-help" className="sr-only">
@@ -482,6 +572,7 @@ export function ExpenseEditorDialog({
           />
         </div>
 
+        {!isIncome && (
         <div className="space-y-2">
           <Label htmlFor="expense-category">Categoría</Label>
           <SelectField
@@ -519,11 +610,12 @@ export function ExpenseEditorDialog({
             </p>
           )}
         </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="expense-date">Fecha</Label>
           <p id="expense-date-help" className="sr-only">
-            Fecha obligatoria. Elegí una fecha para el gasto.
+            Fecha obligatoria. Elegí una fecha para guardar el {isIncome ? "ingreso" : "gasto"}.
           </p>
           <DatePicker
             id="expense-date"
@@ -541,7 +633,7 @@ export function ExpenseEditorDialog({
             className={cn(expenseControlClassName, !expenseDate && "text-muted-foreground")}
           />
         </div>
-        {(
+        {!isIncome && (
           <div className="space-y-4">
             <div className={cn(expenseControlClassName, "flex items-center justify-between gap-3 border py-0")}>
               <div className="min-w-0">
@@ -564,7 +656,7 @@ export function ExpenseEditorDialog({
                 disabled={!canShare && !shared}
                 onClick={() => changeShared(!shared)}
                 className={
-                  "relative h-11 w-14 shrink-0 rounded-full bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 before:absolute before:left-1/2 before:top-1/2 before:h-7 before:w-12 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:transition-colors " +
+                  "relative h-11 w-14 shrink-0 rounded-full bg-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-50 before:absolute before:left-1/2 before:top-1/2 before:h-7 before:w-12 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:transition-colors " +
                   (shared
                     ? "before:bg-primary"
                     : "before:bg-muted-foreground/35")
@@ -600,7 +692,7 @@ export function ExpenseEditorDialog({
               : "")
           }
         >
-          {initialExpense && (
+          {(initialExpense || initialIncome) && (
             <Button
               type="button"
               variant="destructive"
@@ -608,7 +700,7 @@ export function ExpenseEditorDialog({
               onClick={() => setShowDeleteConfirmation(true)}
               disabled={isSaving}
             >
-              Eliminar gasto
+              Eliminar {initialIncome ? "ingreso" : "gasto"}
             </Button>
           )}
           <Button
@@ -623,9 +715,9 @@ export function ExpenseEditorDialog({
           <Button type="submit" className="min-h-11" disabled={isSaving}>
             {isSaving
               ? "Guardando…"
-              : initialExpense
+                : initialExpense || initialIncome
                 ? "Guardar cambios"
-                : "Guardar gasto"}
+                  : `Guardar ${isIncome ? "ingreso" : "gasto"}`}
           </Button>
         </div>
       </form>
@@ -643,9 +735,9 @@ export function ExpenseEditorDialog({
               <Drawer.Popup className="w-full max-w-xl overflow-y-auto overscroll-contain rounded-t-3xl border border-border bg-card text-card-foreground shadow-xl outline-none">
                 <Drawer.Content className="mx-auto max-h-[min(80dvh,32rem)] space-y-4 overflow-y-auto overscroll-contain p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
                   <div>
-                    <Drawer.Title className="text-lg font-semibold">¿Eliminar este gasto?</Drawer.Title>
+                    <Drawer.Title className="text-lg font-semibold">¿Eliminar este {deleteLabel}?</Drawer.Title>
                     <Drawer.Description className="mt-2 text-sm leading-6 text-muted-foreground">
-                      Se quitará de tu historial y, si está compartido, también del balance de Casa.
+                      {deleteDescription}
                     </Drawer.Description>
                   </div>
                   {deleteConfirmationBody}
@@ -666,10 +758,10 @@ export function ExpenseEditorDialog({
             <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-[61] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-xl outline-none sm:p-6">
               <div>
                 <AlertDialog.Title className="text-lg font-semibold">
-                  ¿Eliminar este gasto?
+                  ¿Eliminar este {deleteLabel}?
                 </AlertDialog.Title>
                 <AlertDialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Se quitará de tu historial y, si está compartido, también del balance de Casa.
+                  {deleteDescription}
                 </AlertDialog.Description>
               </div>
               {deleteConfirmationBody}
@@ -752,15 +844,22 @@ export function ExpenseEditorDialog({
                   </section>
                 ) : (
                   <>
-                    <div className="flex shrink-0 items-center justify-between gap-4 px-5 sm:px-6">
-                      <div className="min-w-0">
-                        <Drawer.Title className="text-xl font-semibold">{title}</Drawer.Title>
+                    <div className="flex shrink-0 items-center gap-2 px-5 sm:px-6">
+                      <div className="min-w-0 flex-1">
+                        <Drawer.Title className="break-words text-base font-semibold leading-5 sm:text-xl sm:leading-6">{title}</Drawer.Title>
                         {readOnly && (
                           <Drawer.Description className="mt-1 text-sm text-muted-foreground">
                             Gasto compartido del grupo, en modo de consulta.
                           </Drawer.Description>
                         )}
                       </div>
+                      {showMovementTypeSelector && (
+                        <MovementTypeSelector
+                          isIncome={isIncome}
+                          disabled={isSaving}
+                          onChange={changeMovementType}
+                        />
+                      )}
                     </div>
                     {readOnly ? (
                       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6">
@@ -784,15 +883,22 @@ export function ExpenseEditorDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 transition-opacity data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Popup className="fixed left-1/2 top-1/2 z-[51] max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-xl outline-none transition-[opacity,scale] duration-150 data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <Dialog.Title className="text-xl font-semibold">{title}</Dialog.Title>
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <Dialog.Title className="text-xl font-semibold leading-6">{title}</Dialog.Title>
               {readOnly && (
                 <Dialog.Description className="mt-1 text-sm text-muted-foreground">
                   Gasto compartido del grupo, en modo de consulta.
                 </Dialog.Description>
               )}
             </div>
+            {showMovementTypeSelector && (
+              <MovementTypeSelector
+                isIncome={isIncome}
+                disabled={isSaving}
+                onChange={changeMovementType}
+              />
+            )}
           </div>
           {content}
         </Dialog.Popup>
@@ -808,6 +914,62 @@ export function ExpenseEditorDialog({
     if (!nextOpen && isSaving) return;
     onOpenChange(nextOpen);
   }
+}
+
+function MovementTypeSelector({
+  isIncome,
+  disabled,
+  onChange,
+}: {
+  isIncome: boolean;
+  disabled: boolean;
+  onChange: (nextIncome: boolean) => void;
+}) {
+  return (
+    <fieldset disabled={disabled} className="shrink-0 disabled:opacity-60">
+      <legend className="sr-only">Tipo de movimiento</legend>
+      <div className="relative grid h-11 grid-cols-2 rounded-lg">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-1 bottom-1 rounded-lg bg-muted"
+        />
+        <label className="relative flex h-full min-w-14 cursor-pointer items-center justify-center px-2 text-sm font-medium">
+          <input
+            className="peer sr-only"
+            type="radio"
+            name="movement-type"
+            value="expense"
+            checked={!isIncome}
+            onChange={() => onChange(false)}
+          />
+          <span
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-x-0 top-1 bottom-1 rounded-l-lg transition-colors ${!isIncome ? "bg-primary" : "bg-transparent"}`}
+          />
+          <span className={`pointer-events-none relative z-10 ${!isIncome ? "text-primary-foreground" : "text-muted-foreground"}`}>
+            Gasto
+          </span>
+        </label>
+        <label className="relative flex h-full min-w-14 cursor-pointer items-center justify-center px-2 text-sm font-medium">
+          <input
+            className="peer sr-only"
+            type="radio"
+            name="movement-type"
+            value="income"
+            checked={isIncome}
+            onChange={() => onChange(true)}
+          />
+          <span
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-x-0 top-1 bottom-1 rounded-r-lg transition-colors ${isIncome ? "bg-primary" : "bg-transparent"}`}
+          />
+          <span className={`pointer-events-none relative z-10 ${isIncome ? "text-primary-foreground" : "text-muted-foreground"}`}>
+            Ingreso
+          </span>
+        </label>
+      </div>
+    </fieldset>
+  );
 }
 
 function ReadOnlyExpense({

@@ -72,6 +72,24 @@ export function shouldApplyAutomaticSuggestion(
   return responseRequestId === currentRequestId && !manualSelectionMade;
 }
 
+export function shouldRequestCategorySuggestion(input: {
+  open: boolean;
+  readOnly: boolean;
+  isIncome: boolean;
+  hasExistingMovement: boolean;
+  manualSelectionMade: boolean;
+  description: string;
+}): boolean {
+  return (
+    input.open &&
+    !input.readOnly &&
+    !input.isIncome &&
+    !input.hasExistingMovement &&
+    !input.manualSelectionMade &&
+    input.description.trim().length >= 3
+  );
+}
+
 export async function withSuggestionTimeout<T>(
   operation: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number,

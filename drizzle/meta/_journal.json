@@ -15,6 +15,13 @@
       "when": 1793121048723,
       "tag": "0001_single_household",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793151446890,
+      "tag": "0002_personal_incomes",
+      "breakpoints": true
     }
   ]
 }

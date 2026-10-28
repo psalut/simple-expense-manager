@@ -312,6 +312,7 @@ export function GroupExpenses({
         currentUserId={currentUserId}
         today={today}
         initialExpense={activeExpense?.expense ?? null}
+        allowIncomeCreation={false}
         readOnly={activeExpense?.readOnly ?? false}
         onSaved={(message, outcome) => {
           setFeedback(outcome === "created" ? "" : message);
@@ -332,6 +333,7 @@ export function GroupExpenses({
         currentUserId={currentUserId}
         today={today}
         initialExpense={null}
+        allowIncomeCreation={false}
         defaultGroupId={groupId}
         defaultShared
         onSaved={(message, outcome) => {
