@@ -10,6 +10,7 @@ import {
   ExpenseEditorDialog,
   type ExpenseGroupOption,
 } from "@/components/expenses/expense-editor-dialog";
+import { MonthlyTotalBadge } from "@/components/expenses/monthly-total-badge";
 import type { CategoryView } from "@/lib/categories/types";
 import {
   formatArs,
@@ -22,6 +23,7 @@ import type {
   GroupExpenseView,
 } from "@/lib/server/expenses";
 import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
+import { getPersonInitials } from "@/lib/people/initials";
 
 type Props = {
   groupId: string;
@@ -63,6 +65,34 @@ export function GroupExpenses({
   const [instance, setInstance] = useState(0);
   const groupIsComplete =
     groups.find((group) => group.id === groupId)?.members.length === 2;
+  const groupMemberIds = (groups.find((group) => group.id === groupId)?.members ?? [])
+    .map((member) => member.userId)
+    .sort();
+  const payerBadgeClasses = new Map<string, string>(
+    groupMemberIds.map((userId, index) => [
+      userId,
+      index === 0
+        ? "bg-brand-grey-olive text-black"
+        : "bg-brand-bordeaux text-white",
+    ]),
+  );
+  const personalBalance = balances.find(
+    (member) => member.userId === currentUserId,
+  );
+  const balance = personalBalance ? BigInt(personalBalance.balanceCents) : 0n;
+  const balanceAmount = balance < 0n ? -balance : balance;
+  const balanceStatus =
+    balance > 0n
+      ? "Tenés a favor"
+      : balance < 0n
+        ? "Debés"
+        : "Saldo equilibrado";
+  const balanceStatusClassName =
+    balance > 0n
+      ? "text-success"
+      : balance < 0n
+        ? "text-destructive-foreground"
+        : "text-muted-foreground";
   const visibleExpenses = month
     ? expenses.filter((expense) => expense.expenseDate.slice(0, 7) === month)
     : expenses;
@@ -130,9 +160,9 @@ export function GroupExpenses({
                     <span className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
                       <span
                         aria-hidden="true"
-                        className="inline-flex shrink-0 items-center rounded-full bg-brand-grey-olive px-1.5 py-0 text-[10px] font-medium leading-4 text-foreground"
+                        className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-0 text-[10px] font-medium leading-4 ${payerBadgeClasses.get(expense.payerUserId) ?? "bg-brand-ash-grey text-black"}`}
                       >
-                        {payerInitials(expense.payerName)}
+                        {getPersonInitials(expense.payerName)}
                       </span>
                       <span className="min-w-0 truncate">
                         {expense.categoryName}
@@ -188,9 +218,7 @@ export function GroupExpenses({
             </Link>
             <div className="min-w-0 flex-1 text-center leading-5">
               <p className="font-medium">{formatMonth(month)}</p>
-              <p className="text-sm font-medium tabular-nums [overflow-wrap:anywhere]">
-                {formatArs(monthlyTotal)}
-              </p>
+              <MonthlyTotalBadge amount={monthlyTotal} />
             </div>
             <Link
               href={"/household?month=" + shiftMonth(month, 1)}
@@ -207,45 +235,51 @@ export function GroupExpenses({
       {showBalance && (
         <section aria-labelledby="group-balance-heading" className="space-y-3">
           <header>
-            <h2 id="group-balance-heading" className="text-lg font-semibold">Tu balance</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Acumulado desde el inicio</p>
-            <p className="mt-2 break-words text-sm">{groups.find((group) => group.id === groupId)?.members.map((member) => member.name).join(" · ")}</p>
+            <h2 id="group-balance-heading" className="text-lg font-semibold">
+              Tu saldo personal en {groupName}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Acumulado desde el inicio según el reparto 50/50; separado del total gastado del mes.
+            </p>
           </header>
           {groupIsComplete ? (
-            <ul className="divide-y divide-border border-y border-border">
-              {balances.filter((member) => member.userId === currentUserId).map((member) => {
-                const balance = BigInt(member.balanceCents);
-                const status =
-                  balance > 0n ? "A favor" : balance < 0n ? "En contra" : "Equilibrado";
-                return (
-                  <li key={member.userId}>
-                    <details>
-                      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-                        <span className="min-w-0 truncate font-medium">Ver desglose</span>
-                        <span className="min-w-0 text-right [overflow-wrap:anywhere]">
-                          <span className="block text-xs text-muted-foreground">{status}</span>
-                          <span className="text-2xl font-semibold tabular-nums">{formatArs(member.balanceCents)}</span>
+            personalBalance ? (
+              <ul className="divide-y divide-border border-y border-border">
+                <li>
+                  <details>
+                    <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                      <span className="min-w-0 truncate font-medium">Ver desglose</span>
+                      <span className="min-w-0 text-right [overflow-wrap:anywhere]">
+                        <span className={`block text-xs ${balanceStatusClassName}`}>
+                          {balanceStatus}
                         </span>
-                      </summary>
-                      <dl className="mb-3 grid grid-cols-2 gap-3 rounded-xl bg-muted/50 px-3 py-3 text-sm">
-                        <div>
-                          <dt className="text-xs text-muted-foreground">Pagaste</dt>
-                          <dd className="mt-1 font-medium tabular-nums">
-                            {formatArs(member.paidCents)}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted-foreground">Tu parte</dt>
-                          <dd className="mt-1 font-medium tabular-nums">
-                            {formatArs(member.assignedCents)}
-                          </dd>
-                        </div>
-                      </dl>
-                    </details>
-                  </li>
-                );
-              })}
-            </ul>
+                        <span className="text-2xl font-semibold tabular-nums">
+                          {formatArs(balanceAmount)}
+                        </span>
+                      </span>
+                    </summary>
+                    <dl className="mb-3 grid grid-cols-2 gap-3 rounded-xl bg-muted/50 px-3 py-3 text-sm">
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Pagaste</dt>
+                        <dd className="mt-1 font-medium tabular-nums">
+                          {formatArs(personalBalance.paidCents)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Tu parte</dt>
+                        <dd className="mt-1 font-medium tabular-nums">
+                          {formatArs(personalBalance.assignedCents)}
+                        </dd>
+                      </div>
+                    </dl>
+                  </details>
+                </li>
+              </ul>
+            ) : (
+              <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm leading-6 text-muted-foreground" role="status">
+                Todavía no pudimos calcular tu saldo en este grupo.
+              </p>
+            )
           ) : (
             <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm leading-6 text-muted-foreground">
               Los balances aparecen cuando se una la segunda persona. Todavía no se pueden compartir gastos.
@@ -314,8 +348,8 @@ export function GroupExpenses({
         today={today}
         initialExpense={activeExpense?.expense ?? null}
         readOnly={activeExpense?.readOnly ?? false}
-        onSaved={(message) => {
-          setFeedback(message);
+        onSaved={(message, outcome) => {
+          setFeedback(outcome === "created" ? "" : message);
           setActiveExpense(null);
           setNewExpenseKey(null);
           if (!allowCreate) router.refresh();
@@ -335,19 +369,12 @@ export function GroupExpenses({
         initialExpense={null}
         defaultGroupId={groupId}
         defaultShared
-        onSaved={(message) => {
-          setFeedback(message);
+        onSaved={(message, outcome) => {
+          setFeedback(outcome === "created" ? "" : message);
           setNewExpenseKey(null);
           if (!allowCreate) router.refresh();
         }}
       />
     </div>
   );
-}
-
-function payerInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const firstInitial = parts[0]?.[0] ?? "?";
-  const lastInitial = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "";
-  return `${firstInitial}${lastInitial}`.toLocaleUpperCase("es-AR");
 }

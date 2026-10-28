@@ -32,7 +32,8 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 - **Casa:** único espacio compartido, nombre fijado a Casa; segundo integrante vinculado mediante invitación. Sin selector de grupo al crear gastos.
 - **Privado:** gasto visible únicamente para su autor/pagador en el historial personal.
 - **Compartido:** gasto único asociado a Casa, visible a ambos en Casa, editable/eliminable solo por su autor. En Gastos aparece solamente si lo registró quien consulta.
-- **Reparto:** 50/50 automático; con centavos impares, el pagador asume el centavo excedente. Balances derivados de gastos, no de movimientos separados.
+- **Reparto:** 50/50 automático; con centavos impares, el pagador asume el centavo excedente. Balances derivados de gastos, no de movimientos separados. La vista de detalle muestra únicamente el saldo personal del usuario autenticado y su desglose, usando el cálculo existente.
+- **Identidad visual del pagador:** las dos personas del grupo reciben un color de badge según el orden estable de sus IDs: Grey Olive con texto negro para la primera y Bordó con texto blanco para la segunda. La asignación no es aleatoria.
 - **Moneda:** ARS, montos almacenados y calculados en centavos enteros (`BIGINT`/`BigInt`), sin redondeos con coma flotante. El campo agrupa los miles con puntos en tiempo real y acepta coma o punto para ingresar hasta dos decimales; si se ingresa una parte decimal, muestra dos cifras (por ejemplo, `1020.8` → `1.020,80`).
 - **Total mensual personal:** suma exacta de los gastos del mes registrados/pagados por el usuario, privados y compartidos una sola vez.
 - **Categorías:** catálogo global existente; conserva nombre, descripción, color, archivado, restauración y eliminación con reemplazo cuando aplica. En `/categories`, el listado muestra nombre, color y estado; la descripción queda disponible al abrir la edición.
@@ -40,10 +41,11 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 ## 3. Navegación y UX
 
 - Navegación inferior: **Gastos**, **Casa** (ícono corazón), **Categorías**.
-- `/`: lista personal filtrada por mes; selector mensual; solo el importe del total mensual, centrado bajo el mes; header compacto; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
-- `/household`: selector mensual y total del mes de los gastos compartidos de ambos integrantes, centrado bajo el mes como en Gastos; lista agrupada por día y pagador identificado mediante sus iniciales en un badge; sin título interno para la lista, bloque de balance, desglose ni lista de integrantes; alta con Compartido activado desde el encabezado en escritorio y un botón flotante **+** en móvil.
+- `/`: lista personal filtrada por mes; selector mensual; total mensual centrado bajo el mes en un badge compacto bordó con texto blanco; header compacto; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
+- `/household`: selector mensual y total del mes de los gastos compartidos de ambos integrantes, centrado bajo el mes en el mismo badge que en Gastos; saldo personal acumulado del usuario autenticado con estados a favor, deuda o cero y desglose expandible; lista agrupada por día con iniciales de pagador en colores de paleta asignados establemente por ID; sin saldo visible de la otra persona ni lista de integrantes; alta con Compartido activado desde el encabezado en escritorio y un botón flotante **+** en móvil.
+- Los círculos de perfil muestran iniciales del nombre y apellido, con fallback al correo y luego a «U» si falta el nombre. Tras confirmar una creación de gasto, Base UI muestra un toast de éxito que se cierra automáticamente en 3,5 segundos; el viewport móvil queda por encima de la navegación inferior.
 - `/categories`: administración del catálogo global; el listado muestra nombre, color y estado, y la descripción se consulta al abrir la edición de una categoría. Sin título interno «Catálogo global»; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
-- Drawer en móvil / Dialog en escritorio, calendario amplio, fecha con TZ coherente en Buenos Aires, zonas táctiles adecuadas y áreas seguras en modo PWA.
+- Drawer en móvil / Dialog en escritorio, calendario amplio, fecha con TZ coherente en Buenos Aires, zonas táctiles adecuadas y áreas seguras en modo PWA. El toast temporal no captura eventos fuera de su propia superficie.
 - Las rutas heredadas de grupos no forman parte de la navegación principal; sus redirecciones/comportamiento deben respetar la implementación actual y la autorización.
 
 ## 4. Autenticación y privacidad

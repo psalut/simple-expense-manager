@@ -82,7 +82,6 @@ export function GroupDetail({
         month={month}
         today={today}
         account={account}
-        showBalance={false}
     />
   ) : (
     <>

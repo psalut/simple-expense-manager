@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { UserRound } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { getPersonInitials } from "@/lib/people/initials";
 
 export function AccountMenu({
   name,
@@ -11,7 +12,7 @@ export function AccountMenu({
   name: string;
   email: string;
 }) {
-  const initial = name.trim().slice(0, 1).toLocaleUpperCase("es-AR") || "U";
+  const initials = getPersonInitials(name, email);
   const menuRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export function AccountMenu({
       >
         <span className="grid size-9 place-items-center rounded-full bg-secondary text-secondary-foreground">
           <span className="text-sm font-semibold" aria-hidden="true">
-            {initial}
+            {initials}
           </span>
           <UserRound size={16} className="sr-only" aria-hidden="true" />
         </span>

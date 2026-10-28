@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog } from "@base-ui/react/dialog";
 import { Drawer } from "@base-ui/react/drawer";
+import { Toast } from "@base-ui/react/toast";
 import { NumericFormat } from "react-number-format";
 import {
   createExpenseAction,
@@ -40,6 +41,7 @@ export type ExpenseGroupOption = {
 };
 
 type SuggestionStatus = "idle" | "loading" | "suggested" | "none" | "unavailable";
+export type ExpenseSaveOutcome = "created" | "updated" | "deleted";
 
 type Props = {
   open: boolean;
@@ -52,7 +54,7 @@ type Props = {
   defaultGroupId?: string | null;
   defaultShared?: boolean;
   readOnly?: boolean;
-  onSaved: (message: string) => void;
+  onSaved: (message: string, outcome: ExpenseSaveOutcome) => void;
 };
 
 export function ExpenseEditorDialog({
@@ -69,6 +71,7 @@ export function ExpenseEditorDialog({
   onSaved,
 }: Props) {
   const queryClient = useQueryClient();
+  const toastManager = Toast.useToastManager();
   const isMobile = useMobileViewport();
   const completeGroups = groups.filter(
     (group) =>
@@ -323,11 +326,22 @@ export function ExpenseEditorDialog({
           return;
         }
         void invalidateExpenseRelatedData(queryClient, currentUserId);
+        const outcome = initialExpense ? "updated" : "created";
+        if (outcome === "created") {
+          toastManager.add({
+            id: "expense-created",
+            type: "success",
+            title: "Gasto guardado",
+            timeout: 3500,
+            priority: "low",
+          });
+        }
         onOpenChange(false);
         onSaved(
           initialExpense
             ? "El gasto quedó actualizado."
             : "El gasto quedó guardado.",
+          outcome,
         );
       } finally {
         submitting.current = false;
@@ -352,7 +366,7 @@ export function ExpenseEditorDialog({
         void invalidateExpenseRelatedData(queryClient, currentUserId);
         setShowDeleteConfirmation(false);
         onOpenChange(false);
-        onSaved("El gasto se eliminó.");
+        onSaved("El gasto se eliminó.", "deleted");
       } finally {
         submitting.current = false;
       }
@@ -463,7 +477,7 @@ export function ExpenseEditorDialog({
             maxLength={200}
             required
             autoComplete="off"
-            placeholder="Por ejemplo, compras para la cena"
+            placeholder="Ingresá un detalle"
             className={expenseControlClassName}
           />
         </div>

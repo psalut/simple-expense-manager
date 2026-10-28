@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseEditorDialog, type ExpenseGroupOption } from "@/components/expenses/expense-editor-dialog";
+import { MonthlyTotalBadge } from "@/components/expenses/monthly-total-badge";
 import { FloatingCreateAction, HeaderCreateAction } from "@/components/navigation/create-actions";
 import { SectionHeading } from "@/components/navigation/section-heading";
 import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
@@ -60,9 +61,7 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
           </Link>
           <div className="min-w-0 flex-1 text-center leading-5">
             <p className="font-medium">{formatMonth(month)}</p>
-            <p className="text-sm font-medium tabular-nums [overflow-wrap:anywhere]">
-              {formatArs(monthlyTotal)}
-            </p>
+            <MonthlyTotalBadge amount={monthlyTotal} />
           </div>
           <Link
             href={"/?month=" + shiftMonth(month, 1)}
@@ -159,8 +158,8 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
         categories={categories}
         today={today}
         initialExpense={editor?.expense ?? null}
-        onSaved={(message) => {
-          setFeedback(message);
+        onSaved={(message, outcome) => {
+          setFeedback(outcome === "created" ? "" : message);
           setEditor(null);
         }}
       />
