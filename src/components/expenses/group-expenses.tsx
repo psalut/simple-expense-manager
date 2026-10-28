@@ -37,7 +37,6 @@ type Props = {
   today: string;
   account: Pick<AuthenticatedUserProfile, "name" | "email">;
   allowCreate?: boolean;
-  showBalance?: boolean;
 };
 
 export function GroupExpenses({
@@ -52,7 +51,6 @@ export function GroupExpenses({
   today,
   account,
   allowCreate = true,
-  showBalance = true,
 }: Props) {
   const router = useRouter();
   const [activeExpense, setActiveExpense] = useState<{
@@ -72,8 +70,8 @@ export function GroupExpenses({
     groupMemberIds.map((userId, index) => [
       userId,
       index === 0
-        ? "bg-brand-grey-olive text-black"
-        : "bg-brand-bordeaux text-white",
+        ? "bg-brand-grey-olive text-white"
+        : "bg-brand-bone text-black",
     ]),
   );
   const personalBalance = balances.find(
@@ -89,9 +87,9 @@ export function GroupExpenses({
         : "Saldo equilibrado";
   const balanceStatusClassName =
     balance > 0n
-      ? "text-success"
+      ? "text-brand-grey-olive"
       : balance < 0n
-        ? "text-destructive-foreground"
+        ? "text-brand-bordeaux"
         : "text-muted-foreground";
   const visibleExpenses = month
     ? expenses.filter((expense) => expense.expenseDate.slice(0, 7) === month)
@@ -232,49 +230,17 @@ export function GroupExpenses({
       </header>
 
       <section className="mt-4 space-y-6 sm:mt-6 sm:space-y-8">
-      {showBalance && (
-        <section aria-labelledby="group-balance-heading" className="space-y-3">
-          <header>
-            <h2 id="group-balance-heading" className="text-lg font-semibold">
-              Tu saldo personal en {groupName}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Acumulado desde el inicio según el reparto 50/50; separado del total gastado del mes.
-            </p>
-          </header>
+      <section aria-label={`Saldo personal de ${groupName}`}>
           {groupIsComplete ? (
             personalBalance ? (
-              <ul className="divide-y divide-border border-y border-border">
-                <li>
-                  <details>
-                    <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-                      <span className="min-w-0 truncate font-medium">Ver desglose</span>
-                      <span className="min-w-0 text-right [overflow-wrap:anywhere]">
-                        <span className={`block text-xs ${balanceStatusClassName}`}>
-                          {balanceStatus}
-                        </span>
-                        <span className="text-2xl font-semibold tabular-nums">
-                          {formatArs(balanceAmount)}
-                        </span>
-                      </span>
-                    </summary>
-                    <dl className="mb-3 grid grid-cols-2 gap-3 rounded-xl bg-muted/50 px-3 py-3 text-sm">
-                      <div>
-                        <dt className="text-xs text-muted-foreground">Pagaste</dt>
-                        <dd className="mt-1 font-medium tabular-nums">
-                          {formatArs(personalBalance.paidCents)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-muted-foreground">Tu parte</dt>
-                        <dd className="mt-1 font-medium tabular-nums">
-                          {formatArs(personalBalance.assignedCents)}
-                        </dd>
-                      </div>
-                    </dl>
-                  </details>
-                </li>
-              </ul>
+              <p className="flex min-h-14 w-full items-center justify-between gap-4 border-y border-border py-3">
+                <span className={`min-w-0 font-medium ${balanceStatusClassName}`}>
+                  {balanceStatus}
+                </span>
+                <span className="min-w-0 flex-1 text-right text-xl font-semibold tabular-nums [overflow-wrap:anywhere]">
+                  {formatArs(balanceAmount)}
+                </span>
+              </p>
             ) : (
               <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm leading-6 text-muted-foreground" role="status">
                 Todavía no pudimos calcular tu saldo en este grupo.
@@ -285,8 +251,7 @@ export function GroupExpenses({
               Los balances aparecen cuando se una la segunda persona. Todavía no se pueden compartir gastos.
             </p>
           )}
-        </section>
-      )}
+      </section>
 
       <section aria-label="Gastos compartidos" className="space-y-3">
         {feedback && (

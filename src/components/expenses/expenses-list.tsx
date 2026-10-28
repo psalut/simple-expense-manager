@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Plus, ReceiptText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, ReceiptText, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseEditorDialog, type ExpenseGroupOption } from "@/components/expenses/expense-editor-dialog";
 import { MonthlyTotalBadge } from "@/components/expenses/monthly-total-badge";
@@ -107,7 +107,13 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
                     <button
                       type="button"
                       onClick={() => openEditor(expense)}
-                      aria-label={"Editar " + expense.description + ", " + formatArs(expense.amountCents)}
+                      aria-label={
+                        "Editar " +
+                        expense.description +
+                        ", " +
+                        formatArs(expense.amountCents) +
+                        (expense.sharedSpaceName ? ", gasto compartido" : "")
+                      }
                       className="flex min-h-16 w-full items-center justify-between gap-3 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"
                     >
                       <span className="flex min-w-0 flex-1 items-center gap-3">
@@ -126,8 +132,8 @@ export function ExpensesList({ expenses, categories, groups, currentUserId, acco
                               {expense.categoryIsArchived ? " · archivada" : ""}
                             </span>
                             {expense.sharedSpaceName && (
-                              <span className="inline-flex max-w-full items-center rounded-full bg-brand-ash-grey px-1.5 py-0 text-[10px] font-medium leading-4 text-black">
-                                Compartido
+                              <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-ash-grey text-black">
+                                <UsersRound aria-hidden="true" className="size-3.5" />
                               </span>
                             )}
                           </span>

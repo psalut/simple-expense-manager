@@ -22,7 +22,7 @@ La refactorización a un único hogar y la implementación PWA fueron confirmada
 
 ### Gastos (`/`)
 
-- Historial del usuario del mes elegido: gastos privados más los compartidos que pagó, sin duplicaciones.
+- Historial del usuario del mes elegido: gastos privados más los compartidos que pagó, sin duplicaciones; los compartidos se identifican con un ícono.
 - Selector de mes y **total mensual centrado inmediatamente debajo** dentro de un badge compacto bordó con texto blanco, mostrando solo el importe, sin rótulo ni descripción.
 - Encabezado compacto; alta de gasto en el encabezado en escritorio y con un botón flotante **+** en móvil.
 - Edición y eliminación únicamente de los gastos propios.
@@ -31,7 +31,7 @@ La refactorización a un único hogar y la implementación PWA fueron confirmada
 
 - Acceso directo desde la pestaña **Casa**, con ícono de corazón; no hay listado ni selector de grupos.
 - Selector mensual y total de gastos compartidos de ambos integrantes, centrado debajo del mes en el mismo badge que en Gastos; los gastos del mes se agrupan por día y muestran las iniciales de quien pagó cada uno en un badge con color estable por persona.
-- Se muestra el saldo personal acumulado del usuario autenticado según el reparto 50/50, con estado a favor, deuda o saldo equilibrado (incluido el cero) y un desglose expandible de lo pagado y su parte. Se distingue del total gastado del mes y no muestra el saldo de la otra persona ni una lista de integrantes.
+- Se muestra el saldo personal acumulado del usuario autenticado en una única fila de ancho completo, con estado a favor, deuda o saldo equilibrado (incluido el cero). No incluye título, subtítulo, desglose ni saldo de la otra persona; tampoco muestra una lista de integrantes. El reparto 50/50 se mantiene como regla del dominio.
 - El alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil, sin un título interno para la lista de gastos compartidos.
 - Alta de gasto desde Casa con opción Compartido activada automáticamente.
 - Invitación utilizada únicamente para incorporar a la segunda cuenta durante el onboarding.
