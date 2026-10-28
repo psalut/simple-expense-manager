@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Plus, ReceiptText, UsersRound } from "lucide-react";
+import { ArrowUp, ChevronLeft, ChevronRight, Plus, ReceiptText, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseEditorDialog, type ExpenseGroupOption } from "@/components/expenses/expense-editor-dialog";
 import { MonthlyTotalBadge } from "@/components/expenses/monthly-total-badge";
@@ -13,7 +13,11 @@ import type { CategoryView } from "@/lib/categories/types";
 import { formatArs, formatExpenseDate, formatMonth, shiftMonth } from "@/lib/expenses/format";
 import type { PersonalExpenseView } from "@/lib/server/expenses";
 import type { PersonalIncomeView } from "@/lib/server/incomes";
-import { personalMonthlyBalanceCents } from "@/lib/incomes/personal-monthly-balance";
+import {
+  hasPersonalMonthlyIncome,
+  personalMonthlyBalanceCents,
+} from "@/lib/incomes/personal-monthly-balance";
+import { ExpenseCategoryIcon } from "@/components/expenses/expense-category-icon";
 
 type PersonalMovementView = PersonalExpenseView | PersonalIncomeView;
 
@@ -52,6 +56,7 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
     return rightDate.localeCompare(leftDate);
   });
   const monthlyBalance = personalMonthlyBalanceCents(expenses, incomes);
+  const showMonthlyBalance = hasPersonalMonthlyIncome(incomes);
   const byDate = new Map<string, PersonalMovementView[]>();
   for (const movement of movements) {
     const date = movement.kind === "income" ? movement.incomeDate : movement.expenseDate;
@@ -92,14 +97,16 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
       </header>
 
       <div className="mt-2 space-y-2">
-        <p className="text-center text-xs leading-5">
-          <span className="inline-flex max-w-full items-center justify-center gap-1 rounded-full bg-brand-bone px-2.5 py-0.5 text-xs leading-5 text-black [overflow-wrap:anywhere]">
-            <span>Saldo del mes:</span>
-            <span className={`font-semibold tabular-nums ${monthlyBalance > 0n ? "text-success" : monthlyBalance < 0n ? "text-brand-bordeaux" : "text-muted-foreground"}`}>
-              {monthlyBalance > 0n ? "+ " : ""}{formatArs(monthlyBalance)}
+        {showMonthlyBalance && (
+          <p className="text-center text-xs leading-5">
+            <span className="inline-flex max-w-full items-center justify-center gap-1 rounded-full bg-brand-bone px-2.5 py-0.5 text-xs leading-5 text-black [overflow-wrap:anywhere]">
+              <span>Saldo del mes:</span>
+              <span className={`font-semibold tabular-nums ${monthlyBalance > 0n ? "text-success" : monthlyBalance < 0n ? "text-brand-bordeaux" : "text-muted-foreground"}`}>
+                {monthlyBalance > 0n ? "+ " : ""}{formatArs(monthlyBalance)}
+              </span>
             </span>
-          </span>
-        </p>
+          </p>
+        )}
 
         {feedback && <p className="text-sm text-success" role="status">{feedback}</p>}
 
@@ -161,7 +168,7 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
                                   {movement.categoryIsArchived ? " · archivada" : ""}
                                 </span>
                                 {movement.sharedSpaceName && (
-                                  <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-ash-grey text-black">
+                                  <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-grey-olive text-white">
                                     <UsersRound aria-hidden="true" className="size-3.5" />
                                   </span>
                                 )}
@@ -200,7 +207,7 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
         initialExpense={editor?.movement?.kind === "expense" ? editor.movement : null}
         initialIncome={editor?.movement?.kind === "income" ? editor.movement : null}
         onSaved={(message, outcome) => {
-          setFeedback(outcome === "created" ? "" : message);
+          setFeedback(outcome === "created" || outcome === "deleted" ? "" : message);
           setEditor(null);
         }}
       />
@@ -209,23 +216,16 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
 }
 
 function MovementIcon({ movement }: { movement: PersonalMovementView }) {
-  const isIncome = movement.kind === "income";
-  const Icon = isIncome ? ArrowUp : ArrowDown;
+  if (movement.kind === "expense") {
+    return <ExpenseCategoryIcon color={movement.categoryColor} />;
+  }
 
   return (
     <span
       aria-hidden="true"
-      className={`grid size-8 shrink-0 place-items-center rounded-full ${isIncome ? "bg-success/10 text-success" : ""}`}
-      style={
-        isIncome
-          ? undefined
-          : {
-              color: movement.categoryColor,
-              backgroundColor: `${movement.categoryColor}1A`,
-            }
-      }
+      className="grid size-8 shrink-0 place-items-center rounded-full bg-success/10 text-success"
     >
-      <Icon className="size-4" strokeWidth={2.25} />
+      <ArrowUp className="size-4" strokeWidth={2.25} />
     </span>
   );
 }

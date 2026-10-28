@@ -12,3 +12,9 @@ export function personalMonthlyBalanceCents(
   );
   return received - spent;
 }
+
+export function hasPersonalMonthlyIncome(
+  incomes: readonly { amountCents: string | bigint }[],
+): boolean {
+  return incomes.length > 0;
+}

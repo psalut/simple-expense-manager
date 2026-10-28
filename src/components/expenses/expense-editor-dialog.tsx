@@ -441,12 +441,16 @@ export function ExpenseEditorDialog({
         } else {
           void invalidateExpenseRelatedData(queryClient, currentUserId);
         }
+        toastManager.add({
+          id: initialIncome ? "income-deleted" : "expense-deleted",
+          type: "success",
+          title: initialIncome ? "Ingreso eliminado" : "Gasto eliminado",
+          timeout: 3500,
+          priority: "low",
+        });
         setShowDeleteConfirmation(false);
         onOpenChange(false);
-        onSaved(
-          initialIncome ? "El ingreso se eliminó." : "El gasto se eliminó.",
-          "deleted",
-        );
+        onSaved("", "deleted");
       } finally {
         submitting.current = false;
       }

@@ -10,6 +10,7 @@ import {
   ExpenseEditorDialog,
   type ExpenseGroupOption,
 } from "@/components/expenses/expense-editor-dialog";
+import { ExpenseCategoryIcon } from "@/components/expenses/expense-category-icon";
 import { MonthlyTotalBadge } from "@/components/expenses/monthly-total-badge";
 import type { CategoryView } from "@/lib/categories/types";
 import {
@@ -142,14 +143,10 @@ export function GroupExpenses({
                 ", " +
                 formatArs(expense.amountCents)
               }
-              className="flex min-h-[4.5rem] w-full items-center justify-between gap-4 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"
+              className="flex min-h-[4.5rem] w-full items-center justify-between gap-3 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"
             >
               <span className="flex min-w-0 flex-1 items-center gap-3">
-                <span
-                  aria-hidden="true"
-                  className="size-3 shrink-0 rounded-full border border-foreground/15"
-                  style={{ backgroundColor: expense.categoryColor }}
-                />
+                <ExpenseCategoryIcon color={expense.categoryColor} />
                 <span className="min-w-0 flex-1">
                   <span className="block break-words font-medium">
                     {expense.description}
@@ -315,7 +312,7 @@ export function GroupExpenses({
         allowIncomeCreation={false}
         readOnly={activeExpense?.readOnly ?? false}
         onSaved={(message, outcome) => {
-          setFeedback(outcome === "created" ? "" : message);
+          setFeedback(outcome === "created" || outcome === "deleted" ? "" : message);
           setActiveExpense(null);
           setNewExpenseKey(null);
           if (!allowCreate) router.refresh();
@@ -337,7 +334,7 @@ export function GroupExpenses({
         defaultGroupId={groupId}
         defaultShared
         onSaved={(message, outcome) => {
-          setFeedback(outcome === "created" ? "" : message);
+          setFeedback(outcome === "created" || outcome === "deleted" ? "" : message);
           setNewExpenseKey(null);
           if (!allowCreate) router.refresh();
         }}
