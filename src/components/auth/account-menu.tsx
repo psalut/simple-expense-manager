@@ -60,14 +60,14 @@ export function AccountMenu({
         aria-label="Abrir opciones de cuenta"
         className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
       >
-        <span className="grid size-9 place-items-center rounded-full bg-secondary text-secondary-foreground">
+        <span className="grid size-10 place-items-center rounded-full bg-background text-secondary-foreground">
           {avatarSrc ? (
             <Image
               src={avatarSrc}
               alt=""
-              width={36}
-              height={36}
-              className="size-9 rounded-full object-cover"
+              width={46}
+              height={46}
+              className="size-10 rounded-full object-cover"
             />
           ) : (
             <span className="text-sm font-semibold" aria-hidden="true">
@@ -79,9 +79,20 @@ export function AccountMenu({
         <span className="hidden max-w-32 truncate sm:inline">Cuenta</span>
       </summary>
       <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-border bg-popover p-4 text-popover-foreground shadow-lg">
-        <div className="mb-4 min-w-0">
-          <p className="truncate text-sm font-semibold">{name}</p>
-          <p className="truncate text-xs text-muted-foreground">{email}</p>
+        <div className="mb-4 flex min-w-0 items-center gap-3">
+          {avatarSrc && (
+            <Image
+              src={avatarSrc}
+              alt=""
+              width={56}
+              height={56}
+              className="size-14 shrink-0 rounded-full object-cover"
+            />
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{name}</p>
+            <p className="truncate text-xs text-muted-foreground">{email}</p>
+          </div>
         </div>
         <LogoutButton />
       </div>
