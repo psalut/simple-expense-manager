@@ -21,6 +21,7 @@ import {
 import { useAppUser } from "@/components/app-query-provider";
 import { StaleDataNotice } from "@/components/app-data/query-feedback";
 import { CategoryEditorDialog } from "@/components/categories/category-editor-dialog";
+import { ExpenseCategoryIcon } from "@/components/expenses/expense-category-icon";
 import { FloatingCreateAction, HeaderCreateAction } from "@/components/navigation/create-actions";
 import { SectionHeading } from "@/components/navigation/section-heading";
 import { Button } from "@/components/ui/button";
@@ -431,11 +432,7 @@ function CategoryCard({
     <article className="flex items-center gap-3 py-2">
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="size-3.5 shrink-0 rounded-full border border-foreground/15"
-            style={{ backgroundColor: category.color }}
-          />
+          <ExpenseCategoryIcon color={category.color} icon={category.icon} />
           <h3 className="break-words font-medium">{category.name}</h3>
           {category.isArchived && (
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">

@@ -217,7 +217,7 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
 
 function MovementIcon({ movement }: { movement: PersonalMovementView }) {
   if (movement.kind === "expense") {
-    return <ExpenseCategoryIcon color={movement.categoryColor} />;
+    return <ExpenseCategoryIcon color={movement.categoryColor} icon={movement.categoryIcon} />;
   }
 
   return (

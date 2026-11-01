@@ -16,6 +16,7 @@ export const categories = pgTable(
     name: text("name").notNull(),
     description: text("description").notNull(),
     color: text("color").notNull(),
+    icon: text("icon").default("tag").notNull(),
     isArchived: boolean("is_archived").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -30,7 +31,7 @@ export const categories = pgTable(
     ),
     check(
       "categories_description_valid_check",
-      sql`char_length(trim(regexp_replace(${table.description}, '[[:space:]]+', ' ', 'g'))) BETWEEN 1 AND 500`,
+      sql`char_length(trim(regexp_replace(${table.description}, '[[:space:]]+', ' ', 'g'))) BETWEEN 1 AND 1000`,
     ),
     check(
       "categories_color_valid_check",

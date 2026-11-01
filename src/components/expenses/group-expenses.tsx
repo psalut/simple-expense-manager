@@ -146,7 +146,7 @@ export function GroupExpenses({
               className="flex min-h-[4.5rem] w-full items-center justify-between gap-3 py-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"
             >
               <span className="flex min-w-0 flex-1 items-center gap-3">
-                <ExpenseCategoryIcon color={expense.categoryColor} />
+                <ExpenseCategoryIcon color={expense.categoryColor} icon={expense.categoryIcon} />
                 <span className="min-w-0 flex-1">
                   <span className="block break-words font-medium">
                     {expense.description}

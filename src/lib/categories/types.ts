@@ -10,6 +10,7 @@ export type CategoryView = {
   name: string;
   description: string;
   color: string;
+  icon: string;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;

@@ -38,6 +38,7 @@ export type PersonalExpenseView = {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  categoryIcon: string;
   categoryIsArchived: boolean;
   expenseDate: string;
   sharedSpaceId: string | null;
@@ -70,6 +71,7 @@ export async function listPersonalExpenses(
       categoryId: categories.id,
       categoryName: categories.name,
       categoryColor: categories.color,
+      categoryIcon: categories.icon,
       categoryIsArchived: categories.isArchived,
       expenseDate: expenses.expenseDate,
       sharedSpaceId: expenses.sharedSpaceId,
@@ -103,6 +105,7 @@ export async function getPersonalExpenseMonth(
         categoryId: categories.id,
         categoryName: categories.name,
         categoryColor: categories.color,
+        categoryIcon: categories.icon,
         categoryIsArchived: categories.isArchived,
         expenseDate: expenses.expenseDate,
         sharedSpaceId: expenses.sharedSpaceId,
@@ -170,6 +173,7 @@ export async function getGroupExpenseOverview(
           categoryId: categories.id,
           categoryName: categories.name,
           categoryColor: categories.color,
+          categoryIcon: categories.icon,
           categoryIsArchived: categories.isArchived,
           expenseDate: expenses.expenseDate,
           sharedSpaceId: expenses.sharedSpaceId,

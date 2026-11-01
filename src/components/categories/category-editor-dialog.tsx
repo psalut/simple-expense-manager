@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Drawer } from "@base-ui/react/drawer";
+import { DynamicIcon, iconNames, type IconName } from "lucide-react/dynamic";
 import { createCategoryAction, updateCategoryAction } from "@/app/(app)/categories/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,8 @@ export function CategoryEditorDialog({
   const [name, setName] = useState(category?.name ?? "");
   const [description, setDescription] = useState(category?.description ?? "");
   const [color, setColor] = useState(category?.color ?? "#2F6F66");
+  const [icon, setIcon] = useState(category?.icon ?? "tag");
+  const [iconSearch, setIconSearch] = useState("");
   const [error, setError] = useState("");
   const [isSaving, startSaveTransition] = useTransition();
   const isSubmitting = useRef(false);
@@ -54,7 +57,7 @@ export function CategoryEditorDialog({
     isSubmitting.current = true;
     setError("");
 
-    const values = { name, description, color };
+    const values = { name, description, color, icon };
     startSaveTransition(async () => {
       try {
         const result = await callServerAction(() =>
@@ -94,6 +97,18 @@ export function CategoryEditorDialog({
         }
       >
       <div className="space-y-2">
+        <Label htmlFor="category-icon-search">Ícono</Label>
+        <Input id="category-icon-search" value={iconSearch} onChange={(event) => setIconSearch(event.target.value)} placeholder="Buscar entre los íconos de Lucide" className="min-h-11 rounded-xl px-3" />
+        <div role="group" aria-label="Elegir ícono de categoría" className="grid max-h-40 grid-cols-7 gap-1 overflow-y-auto rounded-xl border border-input p-2 sm:grid-cols-9">
+          {iconNames.filter((name) => name.toLowerCase().includes(iconSearch.trim().toLowerCase())).slice(0, 120).map((name) => (
+            <button key={name} type="button" title={name} aria-label={name} aria-pressed={icon === name} onClick={() => setIcon(name)} className={`grid size-10 place-items-center rounded-lg ${icon === name ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+              <DynamicIcon name={name as IconName} className="size-5" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="category-name">Nombre</Label>
         <Input
           id="category-name"
@@ -116,7 +131,7 @@ export function CategoryEditorDialog({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           required
-          maxLength={500}
+          maxLength={1000}
           rows={3}
           placeholder="Qué gastos incluye y cuáles deberían ir en otra categoría."
           className="min-h-24 w-full resize-y rounded-xl border border-input bg-background px-3 py-2.5 text-base outline-none placeholder:text-muted-foreground md:text-sm"

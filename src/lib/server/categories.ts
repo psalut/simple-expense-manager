@@ -192,6 +192,7 @@ function toCategoryView(
     name: category.name,
     description: category.description,
     color: category.color,
+    icon: category.icon,
     isArchived: category.isArchived,
     createdAt: category.createdAt,
     updatedAt: category.updatedAt,

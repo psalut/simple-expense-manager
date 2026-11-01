@@ -21,7 +21,7 @@ describe("global category policy", () => {
     expect(validateCategoryDraft({ name: " ", description: "desc", color: "#FFFFFF" })).toMatchObject({ success: false });
     expect(validateCategoryDraft({ name: "Comida", description: " ", color: "#FFFFFF" })).toMatchObject({ success: false });
     expect(validateCategoryDraft({ name: "n".repeat(61), description: "desc", color: "#FFFFFF" })).toMatchObject({ success: false });
-    expect(validateCategoryDraft({ name: "Comida", description: "d".repeat(501), color: "#FFFFFF" })).toMatchObject({ success: false });
+    expect(validateCategoryDraft({ name: "Comida", description: "d".repeat(1001), color: "#FFFFFF" })).toMatchObject({ success: false });
     expect(validateCategoryDraft({ name: "Comida", description: "desc", color: "red" })).toMatchObject({ success: false });
   });
 

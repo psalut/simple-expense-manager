@@ -22,6 +22,20 @@
       "when": 1793151446890,
       "tag": "0002_personal_incomes",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793500000000,
+      "tag": "0003_category_icons",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793500000001,
+      "tag": "0004_category_description_1000",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ export type CategoryDraft = {
   name: string;
   description: string;
   color: string;
+  icon: string;
 };
 
 export type CategoryDraftResult =
@@ -35,6 +36,7 @@ export function validateCategoryDraft(value: unknown): CategoryDraftResult {
   const description =
     typeof input.description === "string" ? input.description.trim() : "";
   const rawColor = typeof input.color === "string" ? input.color.trim() : "";
+  const icon = typeof input.icon === "string" ? input.icon.trim() : "tag";
 
   if (!name) {
     return { success: false, error: "El nombre es obligatorio." };
@@ -45,10 +47,10 @@ export function validateCategoryDraft(value: unknown): CategoryDraftResult {
   if (!description) {
     return { success: false, error: "La descripción es obligatoria." };
   }
-  if (description.length > 500) {
+  if (description.length > 1000) {
     return {
       success: false,
-      error: "La descripción no puede superar 500 caracteres.",
+      error: "La descripción no puede superar 1.000 caracteres.",
     };
   }
   if (!/^#[\da-f]{6}$/i.test(rawColor)) {
@@ -57,6 +59,9 @@ export function validateCategoryDraft(value: unknown): CategoryDraftResult {
       error: "Elegí un color hexadecimal válido, por ejemplo #2F6F66.",
     };
   }
+  if (!/^[a-z][a-z0-9-]{0,60}$/.test(icon)) {
+    return { success: false, error: "Elegí un ícono válido." };
+  }
 
   return {
     success: true,
@@ -64,6 +69,7 @@ export function validateCategoryDraft(value: unknown): CategoryDraftResult {
       name,
       description,
       color: normalizeCategoryColor(rawColor),
+      icon,
     },
   };
 }

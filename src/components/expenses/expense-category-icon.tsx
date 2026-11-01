@@ -1,6 +1,6 @@
-import { ArrowDown } from "lucide-react";
+import { DynamicIcon, type IconName } from "lucide-react/dynamic";
 
-export function ExpenseCategoryIcon({ color }: { color: string }) {
+export function ExpenseCategoryIcon({ color, icon }: { color: string; icon?: string }) {
   return (
     <span
       aria-hidden="true"
@@ -10,7 +10,7 @@ export function ExpenseCategoryIcon({ color }: { color: string }) {
         backgroundColor: `${color}1A`,
       }}
     >
-      <ArrowDown className="size-4" strokeWidth={2.25} />
+      <DynamicIcon name={(icon || "tag") as IconName} className="size-4" strokeWidth={2.25} />
     </span>
   );
 }
