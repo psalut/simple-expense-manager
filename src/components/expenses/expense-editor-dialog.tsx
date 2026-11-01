@@ -164,6 +164,7 @@ export function ExpenseEditorDialog({
         name: initialExpense.categoryName,
         description: "",
         color: initialExpense.categoryColor,
+        icon: initialExpense.categoryIcon,
         isArchived: initialExpense.categoryIsArchived,
         createdAt: new Date(0),
         updatedAt: new Date(0),
