@@ -185,6 +185,7 @@ export function ExpenseEditorDialog({
     value: category.id,
     label: category.name + (category.isArchived ? " · archivada (solo historial)" : ""),
     color: category.color,
+    icon: category.icon,
   }));
   const selectedGroup = groups.find((group) => group.id === groupId) ?? null;
   const historicalShared = Boolean(initialExpense?.sharedSpaceId && !groups.some((group) => group.id === initialExpense.sharedSpaceId));
@@ -590,7 +591,7 @@ export function ExpenseEditorDialog({
             describedBy="expense-category-help"
             className={cn(expenseControlClassName, !categoryId && "text-muted-foreground")}
           />
-          <p id="expense-category-help" className="text-xs text-muted-foreground empty:hidden">
+          <p id="expense-category-help" className="min-h-4 text-xs text-muted-foreground">
             {suggestionStatus === "loading"
               ? "Jev está buscando una sugerencia…"
               : suggestionStatus === "suggested"
@@ -949,7 +950,7 @@ function MovementTypeSelector({
           />
           <span
             aria-hidden="true"
-            className={`pointer-events-none absolute inset-x-0 top-1 bottom-1 rounded-l-lg transition-colors ${!isIncome ? "bg-primary" : "bg-transparent"}`}
+            className={`pointer-events-none absolute inset-x-0 top-1 bottom-1 rounded-l-lg transition-colors ${!isIncome ? "bg-destructive" : "bg-transparent"}`}
           />
           <span className={`pointer-events-none relative z-10 ${!isIncome ? "text-primary-foreground" : "text-muted-foreground"}`}>
             Gasto
@@ -966,7 +967,7 @@ function MovementTypeSelector({
           />
           <span
             aria-hidden="true"
-            className={`pointer-events-none absolute inset-x-0 top-1 bottom-1 rounded-r-lg transition-colors ${isIncome ? "bg-primary" : "bg-transparent"}`}
+            className={`pointer-events-none absolute inset-x-0 top-1 bottom-1 rounded-r-lg transition-colors ${isIncome ? "bg-success" : "bg-transparent"}`}
           />
           <span className={`pointer-events-none relative z-10 ${isIncome ? "text-primary-foreground" : "text-muted-foreground"}`}>
             Ingreso

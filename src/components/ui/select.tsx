@@ -2,12 +2,14 @@
 
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { Check, ChevronDown } from "lucide-react";
+import { ExpenseCategoryIcon } from "@/components/expenses/expense-category-icon";
 import { cn } from "@/lib/utils";
 
 export type SelectOption = {
   value: string;
   label: string;
   color?: string;
+  icon?: string;
 };
 
 type SelectFieldProps = {
@@ -54,13 +56,15 @@ export function SelectField({
         )}
       >
         <span className="flex min-w-0 flex-1 items-center gap-2">
-          {selectedOption?.color && (
+          {selectedOption?.color && selectedOption.icon ? (
+            <ExpenseCategoryIcon color={selectedOption.color} icon={selectedOption.icon} />
+          ) : selectedOption?.color ? (
             <span
               aria-hidden="true"
               className="size-3.5 shrink-0 rounded-full border border-foreground/15"
               style={{ backgroundColor: selectedOption.color }}
             />
-          )}
+          ) : null}
           <SelectPrimitive.Value placeholder={placeholder}>
             {selectedOption?.label}
           </SelectPrimitive.Value>
@@ -84,13 +88,15 @@ export function SelectField({
                   value={option.value}
                   className="flex min-h-11 cursor-default items-center gap-2 rounded-lg px-2.5 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 >
-                  {option.color && (
+                  {option.color && option.icon ? (
+                    <ExpenseCategoryIcon color={option.color} icon={option.icon} />
+                  ) : option.color ? (
                     <span
                       aria-hidden="true"
                       className="size-3.5 shrink-0 rounded-full border border-foreground/15"
                       style={{ backgroundColor: option.color }}
                     />
-                  )}
+                  ) : null}
                   <SelectPrimitive.ItemText className="min-w-0 flex-1 truncate">
                     {option.label}
                   </SelectPrimitive.ItemText>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import { UserRound } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { getPersonInitials } from "@/lib/people/initials";
@@ -13,6 +14,13 @@ export function AccountMenu({
   email: string;
 }) {
   const initials = getPersonInitials(name, email);
+  const normalizedName = name.trim().replace(/\s+/gu, " ").toLocaleLowerCase("es-AR");
+  const avatarSrc =
+    normalizedName === "antonella vassallo"
+      ? "/dog.png"
+      : normalizedName === "pablo salut"
+        ? "/cat.png"
+        : null;
   const menuRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -53,9 +61,19 @@ export function AccountMenu({
         className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
       >
         <span className="grid size-9 place-items-center rounded-full bg-secondary text-secondary-foreground">
-          <span className="text-sm font-semibold" aria-hidden="true">
-            {initials}
-          </span>
+          {avatarSrc ? (
+            <Image
+              src={avatarSrc}
+              alt=""
+              width={36}
+              height={36}
+              className="size-9 rounded-full object-cover"
+            />
+          ) : (
+            <span className="text-sm font-semibold" aria-hidden="true">
+              {initials}
+            </span>
+          )}
           <UserRound size={16} className="sr-only" aria-hidden="true" />
         </span>
         <span className="hidden max-w-32 truncate sm:inline">Cuenta</span>

@@ -101,7 +101,7 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
           <p className="text-center text-xs leading-5">
             <span className="inline-flex max-w-full items-center justify-center gap-1 rounded-full bg-brand-bone px-2.5 py-0.5 text-xs leading-5 text-black [overflow-wrap:anywhere]">
               <span>Saldo del mes:</span>
-              <span className={`font-semibold tabular-nums ${monthlyBalance > 0n ? "text-success" : monthlyBalance < 0n ? "text-brand-bordeaux" : "text-muted-foreground"}`}>
+              <span className={`font-semibold tabular-nums ${monthlyBalance > 0n ? "text-success" : monthlyBalance < 0n ? "text-destructive-foreground" : "text-muted-foreground"}`}>
                 {monthlyBalance > 0n ? "+ " : ""}{formatArs(monthlyBalance)}
               </span>
             </span>

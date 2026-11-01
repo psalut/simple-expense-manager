@@ -88,9 +88,9 @@ export function GroupExpenses({
         : "Saldo equilibrado";
   const balanceStatusClassName =
     balance > 0n
-      ? "text-brand-grey-olive"
+      ? "text-success"
       : balance < 0n
-        ? "text-brand-bordeaux"
+        ? "text-destructive-foreground"
         : "text-muted-foreground";
   const visibleExpenses = month
     ? expenses.filter((expense) => expense.expenseDate.slice(0, 7) === month)
@@ -234,7 +234,7 @@ export function GroupExpenses({
                 <span className={`min-w-0 font-medium ${balanceStatusClassName}`}>
                   {balanceStatus}
                 </span>
-                <span className="min-w-0 flex-1 text-right text-xl font-semibold tabular-nums [overflow-wrap:anywhere]">
+                <span className="min-w-0 flex-1 text-right font-medium tabular-nums [overflow-wrap:anywhere]">
                   {formatArs(balanceAmount)}
                 </span>
               </p>
