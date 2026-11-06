@@ -12,7 +12,7 @@ import { callServerAction } from "@/lib/action-result";
 import type { SharedSpaceOverview } from "@/lib/shared-spaces/types";
 import type { CategoryView } from "@/lib/categories/types";
 import type { ExpenseGroupOption } from "@/components/expenses/expense-editor-dialog";
-import type { GroupBalanceView, GroupExpenseView } from "@/lib/server/expenses";
+import type { GroupBalanceView, GroupExpenseView, HouseholdPaymentView } from "@/lib/server/expenses";
 import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 
 export function GroupDetail({
@@ -23,6 +23,7 @@ export function GroupDetail({
   categories,
   expenses,
   balances,
+  payments,
   month,
   today,
   account,
@@ -34,6 +35,7 @@ export function GroupDetail({
   categories: CategoryView[];
   expenses: GroupExpenseView[];
   balances: GroupBalanceView[];
+  payments: HouseholdPaymentView[];
   month: string;
   today: string;
   account: Pick<AuthenticatedUserProfile, "name" | "email">;
@@ -79,6 +81,7 @@ export function GroupDetail({
         categories={categories}
         expenses={expenses}
         balances={balances}
+        payments={payments}
         month={month}
         today={today}
         account={account}

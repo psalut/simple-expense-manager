@@ -38,6 +38,7 @@ export function HouseholdPageClient({
           categories={categories}
           expenses={overview.expenses}
           balances={overview.balances}
+          payments={overview.payments}
           month={month}
           today={today}
           account={account}

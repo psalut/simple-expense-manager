@@ -14,6 +14,7 @@ import { categories } from "@/db/categories-schema";
 import { sharedSpaceMembers, sharedSpaces, sharedSpaceInvitations } from "@/db/shared-space-schema";
 import { createSharedSpace, createSharedSpaceInvitation, acceptSharedSpaceInvitation } from "./shared-spaces";
 import { createExpense, getGroupExpenseOverview, getPersonalMonthlyTotal, updateExpense } from "./expenses";
+import { createHouseholdPayment, voidHouseholdPayment } from "./household-payments";
 import { getAuthenticatedUserId } from "./authenticated-user";
 import { getHouseholdForUser } from "./household";
 import { updateExpenseAction } from "@/app/(app)/expenses/actions";
@@ -95,6 +96,38 @@ describe("single household database and authorization", () => {
     await expect(getGroupExpenseOverview(c.id, householdId)).rejects.toThrow(/acceso/);
     await updateExpense(a.id, own.id, { ...draft, sharedSpaceId: null });
     expect((await getGroupExpenseOverview(a.id, householdId)).expenses).toHaveLength(1);
+  });
+
+  it("serializes payments, protects history and rejects outsiders", async () => {
+    // The preceding fixture leaves B with a 20 ARS credit.
+    const input = { amount: "20.00", date: "2020-01-01", note: "", key: randomUUID(), expectedPayer: a.id };
+    await expect(createHouseholdPayment(c.id, input)).rejects.toThrow();
+    const outcomes = await Promise.allSettled([
+      createHouseholdPayment(a.id, input),
+      createHouseholdPayment(b.id, { ...input, key: randomUUID() }),
+    ]);
+    expect(outcomes.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const winner = outcomes.find((result) => result.status === "fulfilled");
+    if (!winner || winner.status !== "fulfilled") throw new Error("Expected a payment");
+    expect((await getGroupExpenseOverview(a.id, householdId)).balances.every((balance) => balance.balanceCents === "0")).toBe(true);
+    await expect(db.delete(sharedSpaceMembers).where(eq(sharedSpaceMembers.userId, a.id))).rejects.toThrow();
+    await expect(voidHouseholdPayment(c.id, winner.value.id)).rejects.toThrow();
+    await voidHouseholdPayment(b.id, winner.value.id);
+    expect((await getGroupExpenseOverview(a.id, householdId)).balances.find((balance) => balance.userId === a.id)?.balanceCents).toBe("-2000");
+    const repeat = { ...input, key: randomUUID(), amount: "5.00" };
+    const first = await createHouseholdPayment(a.id, repeat);
+    expect(await createHouseholdPayment(a.id, repeat)).toEqual(first);
+    await expect(createHouseholdPayment(a.id, { ...repeat, amount: "6.00" })).rejects.toThrow();
+    await voidHouseholdPayment(a.id, first.id);
+  });
+
+  it("serializes a payment against an expense conversion", async () => {
+    const fixture = await createExpense(a.id, { ...draft, amount: "100.00", sharedSpaceId: householdId });
+    const input = { amount: "30.00", date: "2020-01-01", note: "", key: randomUUID(), expectedPayer: b.id };
+    await Promise.allSettled([createHouseholdPayment(a.id, input), updateExpense(a.id, fixture.id, { ...draft, amount: "100.00", sharedSpaceId: null })]);
+    const overview = await getGroupExpenseOverview(a.id, householdId);
+    expect(overview.balances.reduce((sum, balance) => sum + BigInt(balance.balanceCents), 0n)).toBe(0n);
+    expect(overview.expenses.some((expense) => expense.id === fixture.id)).toBe(false);
   });
 
   it("closes server signup and denies existing outsider sessions while keeping both members", async () => {

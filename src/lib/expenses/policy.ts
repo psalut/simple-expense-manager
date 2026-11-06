@@ -136,6 +136,7 @@ export function calculateGroupBalances(
     payerUserId: string;
     amountCents: bigint;
   }[],
+  payments: readonly { payerUserId: string; receiverUserId: string; amountCents: bigint; voidedAt: Date | null }[] = [],
 ): GroupBalance[] {
   if (members.length !== 2 || members[0].userId === members[1].userId) {
     throw new Error("Un balance compartido requiere exactamente dos integrantes.");
@@ -168,10 +169,18 @@ export function calculateGroupBalances(
     balances.get(other.userId)!.assignedCents += split.otherShareCents;
   }
 
+  for (const payment of payments) {
+    if (payment.voidedAt) continue;
+    const payer = balances.get(payment.payerUserId);
+    const receiver = balances.get(payment.receiverUserId);
+    if (!payer || !receiver || payer === receiver || payment.amountCents <= 0n) throw new Error("Pago inválido.");
+    payer.balanceCents += payment.amountCents;
+    receiver.balanceCents -= payment.amountCents;
+  }
   return [...balances.values()]
     .map((balance) => ({
       ...balance,
-      balanceCents: balance.paidCents - balance.assignedCents,
+      balanceCents: balance.paidCents - balance.assignedCents + balance.balanceCents,
     }))
     .sort(
       (left, right) =>

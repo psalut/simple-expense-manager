@@ -5,6 +5,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { categories } from "@/db/categories-schema";
 import { expenses } from "@/db/expenses-schema";
+import { householdPayments } from "@/db/household-payments-schema";
 import { sharedSpaceMembers, sharedSpaces } from "@/db/shared-space-schema";
 import { user } from "@/db/auth-schema";
 import { resolveHousehold } from "@/lib/server/household";
@@ -46,8 +47,15 @@ export type PersonalExpenseView = {
 };
 
 export type GroupExpenseView = PersonalExpenseView & {
+  createdAt: string;
   payerUserId: string;
   payerName: string;
+};
+
+export type HouseholdPaymentView = {
+  id: string; payerUserId: string; payerName: string; receiverUserId: string;
+  receiverName: string; amountCents: string; paymentDate: string; note: string | null;
+  voidedAt: string | null; createdAt: string;
 };
 
 export type GroupBalanceView = {
@@ -143,7 +151,7 @@ export async function getPersonalMonthlyTotal(userId: string, monthStart: string
 export async function getGroupExpenseOverview(
   userId: string,
   sharedSpaceId: string,
-): Promise<{ expenses: GroupExpenseView[]; balances: GroupBalanceView[] }> {
+): Promise<{ expenses: GroupExpenseView[]; balances: GroupBalanceView[]; payments: HouseholdPaymentView[] }> {
   return db.transaction(
     async (tx) => {
       const [membership] = await measureServerWork("db.household.membership-check", () => tx
@@ -176,6 +184,7 @@ export async function getGroupExpenseOverview(
           categoryIcon: categories.icon,
           categoryIsArchived: categories.isArchived,
           expenseDate: expenses.expenseDate,
+          createdAt: expenses.createdAt,
           sharedSpaceId: expenses.sharedSpaceId,
           sharedSpaceName: sharedSpaces.name,
           payerUserId: user.id,
@@ -188,6 +197,9 @@ export async function getGroupExpenseOverview(
         .where(groupExpenseScope(sharedSpaceId))
         .orderBy(desc(expenses.expenseDate), desc(expenses.createdAt), desc(expenses.id)));
 
+      const paymentRows = await tx.select().from(householdPayments)
+        .where(eq(householdPayments.sharedSpaceId, sharedSpaceId))
+        .orderBy(desc(householdPayments.paymentDate), desc(householdPayments.createdAt), desc(householdPayments.id));
       const balances =
         members.length === 2
           ? calculateGroupBalances(
@@ -196,6 +208,7 @@ export async function getGroupExpenseOverview(
                 payerUserId: row.payerUserId,
                 amountCents: row.amountCents,
               })),
+              paymentRows,
             ).map((balance) => ({
               userId: balance.userId,
               name: balance.name,
@@ -210,9 +223,18 @@ export async function getGroupExpenseOverview(
           ...row,
           kind: "expense" as const,
           amountCents: row.amountCents.toString(),
+          createdAt: row.createdAt.toISOString(),
           currency: "ARS",
         })),
         balances,
+        payments: paymentRows.map((payment) => ({
+          id: payment.id, payerUserId: payment.payerUserId, receiverUserId: payment.receiverUserId,
+          payerName: members.find((member) => member.userId === payment.payerUserId)?.name ?? "Integrante",
+          receiverName: members.find((member) => member.userId === payment.receiverUserId)?.name ?? "Integrante",
+          amountCents: payment.amountCents.toString(), paymentDate: payment.paymentDate,
+          note: payment.note, voidedAt: payment.voidedAt?.toISOString() ?? null,
+          createdAt: payment.createdAt.toISOString(),
+        })),
       };
     },
     { isolationLevel: "repeatable read", accessMode: "read only" },
@@ -225,6 +247,7 @@ export async function createExpense(userId: string, rawInput: unknown) {
   const draft = validation.data;
 
   return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(732619041)`);
     if (draft.sharedSpaceId) {
       await lockSharedSpaceMembers(tx, userId, draft.sharedSpaceId);
     }
@@ -261,6 +284,7 @@ export async function updateExpense(
   const draft = validation.data;
 
   return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(732619041)`);
     const [snapshot] = await tx
       .select()
       .from(expenses)
@@ -335,6 +359,7 @@ export async function deleteExpense(userId: string, rawExpenseId: unknown) {
   const expenseId = readExpenseId(rawExpenseId);
 
   return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(732619041)`);
     const [snapshot] = await tx
       .select()
       .from(expenses)

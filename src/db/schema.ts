@@ -3,3 +3,4 @@ export * from "./shared-space-schema";
 export * from "./categories-schema";
 export * from "./expenses-schema";
 export * from "./incomes-schema";
+export * from "./household-payments-schema";

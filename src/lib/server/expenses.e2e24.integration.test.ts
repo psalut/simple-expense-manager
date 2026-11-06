@@ -12,7 +12,8 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { createExpenseAction, deleteExpenseAction, updateExpenseAction } from "@/app/(app)/expenses/actions";
 import { createIncomeAction, deleteIncomeAction, updateIncomeAction } from "@/app/(app)/incomes/actions";
-import HomePage from "@/app/(app)/page";
+import AppLayout from "@/app/(app)/layout";
+import { GET as getExpensesData } from "@/app/api/app-data/expenses/route";
 import GroupDetailPage from "@/app/(app)/groups/[id]/page";
 import { auth } from "@/lib/auth";
 import { AuthenticationRequiredError, getAuthenticatedUserId } from "@/lib/server/authenticated-user";
@@ -384,9 +385,9 @@ describe("E2E-24 server authorization against Neon/PostgreSQL", () => {
 
   it("exige sesión para las lecturas de página y las mutaciones de Server Action", async () => {
     const beforeHomeRead = await readPersistedState(sharedExpenseId);
-    await expect(asAccount(null, () => HomePage({ searchParams: Promise.resolve({}) }))).rejects.toBeInstanceOf(
-      AuthenticationRequiredError,
-    );
+    await expect(asAccount(null, () => AppLayout({ children: null }))).rejects.toThrow("NEXT_REDIRECT");
+    const response = await asAccount(null, () => getExpensesData(new Request("http://localhost/api/app-data/expenses")));
+    expect(response.status).toBe(401);
     await expect(readPersistedState(sharedExpenseId)).resolves.toEqual(beforeHomeRead);
 
     const beforeGroupRead = await readPersistedState(sharedExpenseId);

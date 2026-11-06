@@ -3,6 +3,7 @@ import type { ExpenseGroupOption } from "@/components/expenses/expense-editor-di
 import type {
   GroupBalanceView,
   GroupExpenseView,
+  HouseholdPaymentView,
   PersonalExpenseView,
 } from "@/lib/server/expenses";
 import type { PersonalIncomeView } from "@/lib/server/incomes";
@@ -29,7 +30,7 @@ export type HouseholdPageData = {
   household: { empty: boolean; canJoin: boolean };
   space: SharedSpaceOverview | null;
   legacy: SharedSpaceOverview[];
-  overview: { expenses: GroupExpenseView[]; balances: GroupBalanceView[] } | null;
+  overview: { expenses: GroupExpenseView[]; balances: GroupBalanceView[]; payments: HouseholdPaymentView[] } | null;
   categories: CategoryView[];
 };
 

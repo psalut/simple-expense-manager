@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { inSelectedMonth } from "@/lib/household-payments/activity";
+import { Button } from "@/components/ui/button";
+import { PaymentDialog } from "@/components/groups/payment-dialog";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, ReceiptText } from "lucide-react";
 import { FloatingCreateAction, HeaderCreateAction } from "@/components/navigation/create-actions";
@@ -22,6 +25,7 @@ import {
 import type {
   GroupBalanceView,
   GroupExpenseView,
+  HouseholdPaymentView,
 } from "@/lib/server/expenses";
 import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 import { getPersonInitials } from "@/lib/people/initials";
@@ -34,6 +38,7 @@ type Props = {
   categories: CategoryView[];
   expenses: GroupExpenseView[];
   balances: GroupBalanceView[];
+  payments?: HouseholdPaymentView[];
   month?: string;
   today: string;
   account: Pick<AuthenticatedUserProfile, "name" | "email">;
@@ -48,6 +53,7 @@ export function GroupExpenses({
   categories,
   expenses,
   balances,
+  payments = [],
   month,
   today,
   account,
@@ -60,6 +66,7 @@ export function GroupExpenses({
     key: number;
   } | null>(null);
   const [newExpenseKey, setNewExpenseKey] = useState<number | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<HouseholdPaymentView | "new" | null>(null);
   const [feedback, setFeedback] = useState("");
   const [instance, setInstance] = useState(0);
   const groupIsComplete =
@@ -92,20 +99,20 @@ export function GroupExpenses({
       : balance < 0n
         ? "text-destructive-foreground"
         : "text-muted-foreground";
-  const visibleExpenses = month
-    ? expenses.filter((expense) => expense.expenseDate.slice(0, 7) === month)
-    : expenses;
+  const visibleExpenses = expenses.filter((expense) => inSelectedMonth(expense.expenseDate, month));
   const monthlyTotal = visibleExpenses.reduce(
     (total, expense) => total + BigInt(expense.amountCents),
     0n,
   );
-  const expensesByDate = new Map<string, GroupExpenseView[]>();
-
-  for (const expense of visibleExpenses) {
-    const items = expensesByDate.get(expense.expenseDate) ?? [];
-    items.push(expense);
-    expensesByDate.set(expense.expenseDate, items);
-  }
+  const visiblePayments = payments.filter((payment) => inSelectedMonth(payment.paymentDate, month));
+  const activity = [
+    ...visibleExpenses.map((expense) => ({ kind: "expense" as const, date: expense.expenseDate, createdAt: expense.createdAt, expense })),
+    ...visiblePayments.map((payment) => ({ kind: "payment" as const, date: payment.paymentDate, createdAt: payment.createdAt, payment })),
+  ].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  const activityByDate = new Map<string, typeof activity>();
+  for (const item of activity) activityByDate.set(item.date, [...(activityByDate.get(item.date) ?? []), item]);
+  const payer = balances.find((member) => BigInt(member.balanceCents) < 0n);
+  const receiver = balances.find((member) => BigInt(member.balanceCents) > 0n);
 
   function openExpense(expense: GroupExpenseView) {
     const key = instance + 1;
@@ -248,55 +255,27 @@ export function GroupExpenses({
               Los balances aparecen cuando se una la segunda persona. Todavía no se pueden compartir gastos.
             </p>
           )}
+        {allowCreate && payer && receiver && <Button variant="outline" className="mt-3 min-h-11" onClick={() => setPaymentDialog("new")}>Registrar pago</Button>}
       </section>
 
-      <section aria-label="Gastos compartidos" className="space-y-3">
+      <section aria-label="Actividad de Casa" className="space-y-3">
         {feedback && (
           <p className="text-sm text-success" role="status">
             {feedback}
           </p>
         )}
-        {visibleExpenses.length === 0 ? (
-          <div className="flex items-start gap-3 border-y border-border py-5">
-            <ReceiptText
-              size={19}
-              aria-hidden="true"
-              className="mt-0.5 shrink-0 text-muted-foreground"
-            />
-            <p className="text-sm leading-6 text-muted-foreground">
-              {month && expenses.length > 0
-                ? "No hay gastos compartidos en " + formatMonth(month) + "."
-                : groupIsComplete
-                  ? "Todavía no hay gastos compartidos en " + groupName + ". Agregá uno cuando alguien pague algo para el grupo."
-                  : groupName + " necesita una segunda persona antes de compartir gastos."}
-            </p>
-          </div>
-        ) : month ? (
-          <div className="space-y-7">
-            {[...expensesByDate.entries()].map(([date, items]) => (
-              <section
-                key={date}
-                aria-labelledby={"shared-expenses-date-" + date}
-              >
-                <h3
-                  id={"shared-expenses-date-" + date}
-                  className="mb-2 text-sm font-medium capitalize text-muted-foreground"
-                >
-                  {formatExpenseDate(date, today)}
-                </h3>
-                {renderExpenseRows(items, false)}
-              </section>
-            ))}
-          </div>
-        ) : (
-          renderExpenseRows(visibleExpenses, true)
-        )}
+        {activity.length === 0 ? (
+          <div className="flex items-start gap-3 border-y border-border py-5"><ReceiptText size={19} aria-hidden="true" className="mt-0.5 shrink-0 text-muted-foreground" /><p className="text-sm text-muted-foreground">{month ? "No hay movimientos compartidos en " + formatMonth(month) + "." : "Todavía no hay movimientos compartidos."}</p></div>
+        ) : <div className="space-y-7">{[...activityByDate.entries()].map(([date, items]) => <section key={date}><h3 className="mb-2 text-sm font-medium capitalize text-muted-foreground">{formatExpenseDate(date, today)}</h3><div>{items.map((item) => item.kind === "expense" ? <div key={"expense-" + item.expense.id}>{renderExpenseRows([item.expense], false)}</div> : <button key={"payment-" + item.payment.id} type="button" onClick={() => setPaymentDialog(item.payment)} className="flex min-h-[4.5rem] w-full items-center justify-between gap-3 border-b border-border py-3 text-left hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"><span className="min-w-0"><span className="block font-medium">Pago de {item.payment.payerName} a {item.payment.receiverName}</span><span className="block text-sm text-muted-foreground">{item.payment.voidedAt ? "Anulado" : "Pago entre integrantes"}{item.payment.note ? " · " + item.payment.note : ""}</span></span><span className="shrink-0 font-medium tabular-nums">{formatArs(item.payment.amountCents)}</span></button>)}</div></section>)}</div>}
+
       </section>
       </section>
 
       {groupIsComplete && allowCreate && (
         <FloatingCreateAction label="Agregar gasto" onClick={addExpense} />
       )}
+
+      {paymentDialog && <PaymentDialog key={paymentDialog === "new" ? "new" : paymentDialog.id} open onClose={() => setPaymentDialog(null)} userId={currentUserId} payer={payer ?? { userId: "", name: "" }} receiver={receiver ?? { userId: "", name: "" }} debt={balanceAmount} today={today} payment={paymentDialog === "new" ? undefined : paymentDialog} />}
 
       <ExpenseEditorDialog
         key={activeExpense?.key ?? newExpenseKey ?? "closed"}

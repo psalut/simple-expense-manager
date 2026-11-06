@@ -13,6 +13,7 @@ describe("global category policy", () => {
         name: "Super mercado",
         description: "Compras de alimentos",
         color: "#2F6F66",
+        icon: "tag",
       },
     });
   });

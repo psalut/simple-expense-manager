@@ -17,7 +17,7 @@ El registro de ingresos personales está implementado en el árbol de trabajo. A
 - **Una sola carga por gasto:** un gasto se registra una vez, como privado o compartido.
 - **Ingresos personales:** cada persona puede registrar ingresos visibles solo para ella; no participan en la distribución de gastos de Casa.
 - **Privacidad:** en Gastos cada persona ve los gastos que cargó/pagó; en Casa ambos ven los gastos compartidos, incluidos los que pagó la otra persona.
-- **Simplicidad:** reparto automático 50/50, sin liquidaciones, transferencias ni presupuestos.
+- **Simplicidad:** reparto automático 50/50 y pagos entre integrantes, sin presupuestos.
 - **Mobile-first:** tres pestañas, formularios cómodos, navegación inferior y experiencia PWA instalable.
 - **Sin offline:** se necesita internet; no se persisten gastos o sesiones en una caché offline.
 
@@ -36,7 +36,7 @@ El registro de ingresos personales está implementado en el árbol de trabajo. A
 - Selector mensual y total de gastos compartidos de ambos integrantes, centrado debajo del mes en el mismo badge que en Gastos; los gastos del mes se agrupan por día y muestran las iniciales de quien pagó cada uno en un badge con color estable por persona.
 - Se muestra el saldo personal acumulado del usuario autenticado en una única fila de ancho completo, con estado a favor, deuda o saldo equilibrado (incluido el cero). No incluye título, subtítulo, desglose ni saldo de la otra persona; tampoco muestra una lista de integrantes. El reparto 50/50 se mantiene como regla del dominio.
 - El alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil, sin un título interno para la lista de gastos compartidos.
-- Alta de gasto desde Casa con opción Compartido activada automáticamente.
+- Alta de gasto desde Casa con opción Compartido activada automáticamente. «Registrar pago» permite a cualquiera de los integrantes registrar o anular pagos parciales o totales. La actividad mensual intercala gastos y pagos, incluso los anulados; el total mensual suma solo gastos y el balance es acumulado.
 - Invitación utilizada únicamente para incorporar a la segunda cuenta durante el onboarding.
 
 ### Categorías (`/categories`)
@@ -52,6 +52,8 @@ Better Auth gestiona sesiones. El registro público está cerrado después de re
 Formulario reutilizado en Drawer móvil y Dialog de escritorio. Al crear desde Gastos, el encabezado muestra «Nuevo movimiento» a la izquierda y un selector segmentado Gasto/Ingreso a la derecha, con Gasto seleccionado inicialmente. Gasto conserva importe positivo en ARS, detalle, categoría global activa, fecha y el selector Compartido apagado. Ingreso conserva importe, detalle y fecha; no muestra categoría ni selector compartido. Al editar, el título es «Editar gasto» o «Editar ingreso» y el tipo queda fijo. Al alternar durante el alta se limpian categoría y grupo, conservando importe, detalle y fecha. El detalle usa el placeholder «Ingresá un detalle». El importe agrupa los miles con puntos mientras se escribe, acepta coma o punto para ingresar hasta dos decimales y muestra dos cifras decimales si se ingresan centavos (por ejemplo, `500000` → `500.000` y `1020.8` → `1.020,80`). Desde Casa, Compartido inicia activado y no se muestra el selector de tipo ni se ofrecen ingresos. No hay selector de hogar, grupo ni participantes. Al guardar o eliminar un movimiento y confirmar el servidor la operación, se muestra un toast de éxito temporal.
 
 Los ingresos se guardan en una entidad independiente con titular, importe en centavos, detalle y fecha. Son visibles solo para su titular. El saldo personal mensual suma los ingresos y resta los gastos del historial personal de ese mes; el total gastado conserva solo gastos. Los ingresos no afectan balances, deudas, repartos ni listados de Casa.
+
+Los pagos se registran en centavos, con fecha no futura y nota opcional; no son gastos ni ingresos personales. Para corregirlos se anulan y se registran de nuevo. La dirección se deriva de la deuda vigente.
 
 Los gastos compartidos se reparten 50/50 entre los dos integrantes. Cuando el importe en centavos es impar, el centavo adicional corresponde al pagador. El pagador es el autor del gasto. Otros integrantes pueden consultar un gasto compartido en solo lectura, nunca editarlo o borrarlo.
 

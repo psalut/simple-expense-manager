@@ -36,6 +36,13 @@
       "when": 1793500000001,
       "tag": "0004_category_description_1000",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794000000000,
+      "tag": "0005_household_payments",
+      "breakpoints": true
     }
   ]
 }

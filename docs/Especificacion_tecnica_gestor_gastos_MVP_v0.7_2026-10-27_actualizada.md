@@ -34,7 +34,7 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 - **Casa:** único espacio compartido, nombre fijado a Casa; segundo integrante vinculado mediante invitación. Sin selector de grupo al crear gastos.
 - **Privado:** gasto visible únicamente para su autor/pagador en el historial personal.
 - **Compartido:** gasto único asociado a Casa, visible a ambos en Casa, editable/eliminable solo por su autor. En Gastos aparece solamente si lo registró quien consulta y se identifica con un ícono accesible.
-- **Reparto de Casa:** 50/50 automático; con centavos impares, el pagador asume el centavo excedente. Los balances y deudas de Casa se derivan exclusivamente de gastos compartidos. Casa muestra solo el estado y monto del saldo del usuario autenticado en una fila de ancho completo, sin desglose; Grey Olive identifica saldo a favor, Bordó deuda y neutro el saldo equilibrado.
+- **Reparto de Casa:** 50/50 automático; con centavos impares, el pagador asume el centavo excedente. Los balances y deudas de Casa se derivan de gastos compartidos y pagos activos entre integrantes. Casa muestra solo el estado y monto del saldo del usuario autenticado en una fila de ancho completo, sin desglose; Grey Olive identifica saldo a favor, Bordó deuda y neutro el saldo equilibrado.
 - **Identidad visual del pagador:** las dos personas del grupo reciben un color de badge según el orden estable de sus IDs: Grey Olive con texto blanco para la primera y Bone con texto negro para la segunda. La asignación no es aleatoria.
 - **Moneda:** ARS, montos almacenados y calculados en centavos enteros (`BIGINT`/`BigInt`), sin redondeos con coma flotante. El campo agrupa los miles con puntos en tiempo real y acepta coma o punto para ingresar hasta dos decimales; si se ingresa una parte decimal, muestra dos cifras (por ejemplo, `1020.8` → `1.020,80`).
 - **Total mensual personal:** suma exacta de los gastos del mes registrados/pagados por el usuario, privados y compartidos una sola vez.
@@ -149,6 +149,12 @@ Migraciones en producción deben ejecutarse de forma explícita y controlada, no
 
 ## 11. Límites explícitos
 
-No introducir múltiples hogares, categorías por grupo, repartos configurables, presupuestos, liquidaciones, notificaciones, persistencia offline ni infraestructura Redis/WebSocket sin una necesidad real confirmada.
+No introducir múltiples hogares, categorías por grupo, repartos configurables, presupuestos, notificaciones, persistencia offline ni infraestructura Redis/WebSocket sin una necesidad real confirmada.
 
 **Objetivo técnico:** navegación rápida y datos correctos para dos usuarios, sin sacrificar privacidad ni simplicidad.
+
+## Pagos entre integrantes — implementación local
+
+`household_payments` registra pagos en ARS y centavos, participantes, creador, fecha, nota, clave de idempotencia y anulación. La migración aditiva `0005_household_payments.sql` no requiere backfill y debe aplicarse explícitamente; no hay despliegue ni aplicación a producción confirmados. Las claves foráneas protegen la membresía histórica.
+
+El saldo acumulado es gastos pagados menos parte asignada, más pagos activos enviados menos pagos activos recibidos. Ambas personas pueden registrar o anular; el servidor deriva la dirección y valida el saldo bajo el mismo bloqueo transaccional que las mutaciones de gastos y membresía. Un pago se corrige mediante anulación y nuevo registro. Fechas pasadas son informativas; no se permiten futuras ni se reconstruyen balances históricos. La actividad se filtra por mes; el total mensual conserva solo gastos. Los pagos no participan en ingresos ni saldo personal. No hay actualización optimista ni tiempo real.
