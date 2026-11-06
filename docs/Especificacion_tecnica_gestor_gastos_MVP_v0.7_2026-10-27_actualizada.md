@@ -57,6 +57,7 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 ## 4. Autenticación y privacidad
 
 - Better Auth gestiona cuentas y sesiones; `AUTH_REGISTRATION_CLOSED=true` en Vercel después del onboarding de ambas personas.
+- Recuperación administrativa sin correo: `node scripts/reset-user-password.mjs --email usuario@dominio --confirm-email usuario@dominio` solicita la nueva contraseña en una terminal sin mostrarla. Usa `DATABASE_URL` de `.env.local`, exige confirmación adicional para bases remotas y revoca las sesiones existentes. No pasar contraseñas como argumentos ni guardarlas en archivos.
 - En todos los endpoints y mutaciones se valida la sesión y la titularidad/membresía antes de leer o escribir.
 - Un integrante no puede modificar ni eliminar el gasto de otro.
 - Las respuestas privadas de los endpoints de datos declaran `Cache-Control: private, no-store`; **caché de aplicación en memoria** no equivale a almacenamiento HTTP compartido.
