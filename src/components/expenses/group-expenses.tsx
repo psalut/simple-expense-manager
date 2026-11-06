@@ -3,11 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { inSelectedMonth } from "@/lib/household-payments/activity";
-import { Button } from "@/components/ui/button";
 import { PaymentDialog } from "@/components/groups/payment-dialog";
+import { HouseholdCreateActions } from "@/components/groups/household-create-actions";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ReceiptText } from "lucide-react";
-import { FloatingCreateAction, HeaderCreateAction } from "@/components/navigation/create-actions";
+import { ArrowLeftRight, ChevronLeft, ChevronRight, ReceiptText } from "lucide-react";
 import { SectionHeading } from "@/components/navigation/section-heading";
 import {
   ExpenseEditorDialog,
@@ -196,6 +195,55 @@ export function GroupExpenses({
     );
   }
 
+  function renderPaymentRow(payment: HouseholdPaymentView) {
+    const title =
+      payment.payerUserId === currentUserId
+        ? `Reembolso a ${payment.receiverName}`
+        : payment.receiverUserId === currentUserId
+          ? `Reembolso de ${payment.payerName}`
+          : "Reembolso entre integrantes";
+    const status = payment.voidedAt ? "Anulado" : "Entre integrantes";
+    const accessibleName = [
+      title,
+      payment.voidedAt ? "Reembolso anulado" : status,
+      formatArs(payment.amountCents),
+    ]
+      .filter(Boolean)
+      .join(". ");
+
+    return (
+      <button
+        key={"payment-" + payment.id}
+        type="button"
+        onClick={() => setPaymentDialog(payment)}
+        aria-label={accessibleName}
+        className="flex min-h-[4.5rem] w-full items-center justify-between gap-3 border-y border-border py-3 text-left hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        <span className="flex min-w-0 flex-1 items-center gap-3">
+          <span
+            aria-hidden="true"
+            className={`grid size-8 shrink-0 place-items-center rounded-full ${payment.voidedAt ? "bg-muted text-muted-foreground" : "bg-brand-grey-olive/10 text-brand-grey-olive"}`}
+          >
+            <ArrowLeftRight className="size-4" strokeWidth={2.25} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className={`block truncate font-medium ${payment.voidedAt ? "text-muted-foreground" : ""}`}>
+              {title}
+            </span>
+            <span className="mt-1 block truncate text-sm text-muted-foreground">
+              {status}
+            </span>
+          </span>
+        </span>
+        <span className="shrink-0 text-right">
+          <span className={`block font-medium tabular-nums ${payment.voidedAt ? "text-muted-foreground" : ""}`}>
+            {formatArs(payment.amountCents)}
+          </span>
+        </span>
+      </button>
+    );
+  }
+
   return (
     <div>
       <header className="space-y-1 sm:space-y-3">
@@ -203,7 +251,11 @@ export function GroupExpenses({
           title={groupName}
           account={account}
           actions={groupIsComplete && allowCreate ? (
-            <HeaderCreateAction label="Agregar gasto" onClick={addExpense} />
+            <HouseholdCreateActions
+              hasActiveDebt={balanceAmount > 0n && Boolean(payer && receiver)}
+              onAddExpense={addExpense}
+              onRegisterPayment={() => setPaymentDialog("new")}
+            />
           ) : undefined}
         />
         {month && (
@@ -255,7 +307,6 @@ export function GroupExpenses({
               Los balances aparecen cuando se una la segunda persona. Todavía no se pueden compartir gastos.
             </p>
           )}
-        {allowCreate && payer && receiver && <Button variant="outline" className="mt-3 min-h-11" onClick={() => setPaymentDialog("new")}>Registrar pago</Button>}
       </section>
 
       <section aria-label="Actividad de Casa" className="space-y-3">
@@ -266,14 +317,10 @@ export function GroupExpenses({
         )}
         {activity.length === 0 ? (
           <div className="flex items-start gap-3 border-y border-border py-5"><ReceiptText size={19} aria-hidden="true" className="mt-0.5 shrink-0 text-muted-foreground" /><p className="text-sm text-muted-foreground">{month ? "No hay movimientos compartidos en " + formatMonth(month) + "." : "Todavía no hay movimientos compartidos."}</p></div>
-        ) : <div className="space-y-7">{[...activityByDate.entries()].map(([date, items]) => <section key={date}><h3 className="mb-2 text-sm font-medium capitalize text-muted-foreground">{formatExpenseDate(date, today)}</h3><div>{items.map((item) => item.kind === "expense" ? <div key={"expense-" + item.expense.id}>{renderExpenseRows([item.expense], false)}</div> : <button key={"payment-" + item.payment.id} type="button" onClick={() => setPaymentDialog(item.payment)} className="flex min-h-[4.5rem] w-full items-center justify-between gap-3 border-b border-border py-3 text-left hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"><span className="min-w-0"><span className="block font-medium">Pago de {item.payment.payerName} a {item.payment.receiverName}</span><span className="block text-sm text-muted-foreground">{item.payment.voidedAt ? "Anulado" : "Pago entre integrantes"}{item.payment.note ? " · " + item.payment.note : ""}</span></span><span className="shrink-0 font-medium tabular-nums">{formatArs(item.payment.amountCents)}</span></button>)}</div></section>)}</div>}
+        ) : <div className="space-y-7">{[...activityByDate.entries()].map(([date, items]) => <section key={date}><h3 className="mb-2 text-sm font-medium capitalize text-muted-foreground">{formatExpenseDate(date, today)}</h3><div>{items.map((item) => item.kind === "expense" ? <div key={"expense-" + item.expense.id}>{renderExpenseRows([item.expense], false)}</div> : renderPaymentRow(item.payment))}</div></section>)}</div>}
 
       </section>
       </section>
-
-      {groupIsComplete && allowCreate && (
-        <FloatingCreateAction label="Agregar gasto" onClick={addExpense} />
-      )}
 
       {paymentDialog && <PaymentDialog key={paymentDialog === "new" ? "new" : paymentDialog.id} open onClose={() => setPaymentDialog(null)} userId={currentUserId} payer={payer ?? { userId: "", name: "" }} receiver={receiver ?? { userId: "", name: "" }} debt={balanceAmount} today={today} payment={paymentDialog === "new" ? undefined : paymentDialog} />}
 

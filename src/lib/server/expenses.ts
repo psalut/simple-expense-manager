@@ -54,7 +54,7 @@ export type GroupExpenseView = PersonalExpenseView & {
 
 export type HouseholdPaymentView = {
   id: string; payerUserId: string; payerName: string; receiverUserId: string;
-  receiverName: string; amountCents: string; paymentDate: string; note: string | null;
+  receiverName: string; amountCents: string; paymentDate: string;
   voidedAt: string | null; createdAt: string;
 };
 
@@ -232,7 +232,7 @@ export async function getGroupExpenseOverview(
           payerName: members.find((member) => member.userId === payment.payerUserId)?.name ?? "Integrante",
           receiverName: members.find((member) => member.userId === payment.receiverUserId)?.name ?? "Integrante",
           amountCents: payment.amountCents.toString(), paymentDate: payment.paymentDate,
-          note: payment.note, voidedAt: payment.voidedAt?.toISOString() ?? null,
+          voidedAt: payment.voidedAt?.toISOString() ?? null,
           createdAt: payment.createdAt.toISOString(),
         })),
       };

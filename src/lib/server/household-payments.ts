@@ -25,14 +25,14 @@ async function lockedHousehold(tx: Tx, userId: string) {
 
 export async function createHouseholdPayment(userId: string, input: unknown) {
   const draft = validatePayment(input, currentDateInBuenosAires());
-  if (!draft) throw new PaymentError("Revisá el importe, la fecha y la nota del pago.");
+  if (!draft) throw new PaymentError("Revisá el importe y la fecha del reembolso.");
   return db.transaction(async (tx) => {
     const space = await lockedHousehold(tx, userId);
     const [existing] = await tx.select().from(householdPayments).where(and(
       eq(householdPayments.sharedSpaceId, space.id), eq(householdPayments.createdByUserId, userId), eq(householdPayments.idempotencyKey, draft.key),
     )).limit(1);
     if (existing) {
-      if (existing.amountCents !== draft.amountCents || existing.paymentDate !== draft.date || existing.note !== draft.note || existing.payerUserId !== draft.expectedPayer) throw new PaymentError("Este intento ya fue usado con otros datos.");
+      if (existing.amountCents !== draft.amountCents || existing.paymentDate !== draft.date || existing.payerUserId !== draft.expectedPayer) throw new PaymentError("Este intento ya fue usado con otros datos.");
       return { id: existing.id };
     }
     const expenseRows = await tx.select({ payerUserId: expenses.userId, amountCents: expenses.amountCents }).from(expenses).where(eq(expenses.sharedSpaceId, space.id));
@@ -40,19 +40,19 @@ export async function createHouseholdPayment(userId: string, input: unknown) {
     const balances = calculateGroupBalances(space.members, expenseRows, paymentRows);
     const payer = balances.find((b) => b.balanceCents < 0n);
     const receiver = balances.find((b) => b.balanceCents > 0n);
-    if (!payer || !receiver || payer.userId !== draft.expectedPayer || draft.amountCents > -payer.balanceCents) throw new PaymentError("La deuda cambió. Revisá el saldo actualizado e intentá de nuevo.");
+    if (!payer || !receiver || payer.userId !== draft.expectedPayer || draft.amountCents > -payer.balanceCents) throw new PaymentError("El saldo cambió. Revisá el saldo actualizado e intentá de nuevo.");
     const id = randomUUID();
-    await tx.insert(householdPayments).values({ id, sharedSpaceId: space.id, payerUserId: payer.userId, receiverUserId: receiver.userId, createdByUserId: userId, amountCents: draft.amountCents, paymentDate: draft.date, note: draft.note, idempotencyKey: draft.key });
+    await tx.insert(householdPayments).values({ id, sharedSpaceId: space.id, payerUserId: payer.userId, receiverUserId: receiver.userId, createdByUserId: userId, amountCents: draft.amountCents, paymentDate: draft.date, idempotencyKey: draft.key });
     return { id };
   });
 }
 
 export async function voidHouseholdPayment(userId: string, rawId: unknown) {
-  if (typeof rawId !== "string" || !rawId || rawId.length > 100) throw new PaymentError("No se encontró el pago.");
+  if (typeof rawId !== "string" || !rawId || rawId.length > 100) throw new PaymentError("No se encontró el reembolso.");
   return db.transaction(async (tx) => {
     const space = await lockedHousehold(tx, userId);
     const [payment] = await tx.select().from(householdPayments).where(and(eq(householdPayments.id, rawId), eq(householdPayments.sharedSpaceId, space.id))).limit(1);
-    if (!payment) throw new PaymentError("No se encontró el pago.");
+    if (!payment) throw new PaymentError("No se encontró el reembolso.");
     if (!payment.voidedAt) await tx.update(householdPayments).set({ voidedAt: new Date(), voidedByUserId: userId }).where(eq(householdPayments.id, payment.id));
     return { id: payment.id };
   });

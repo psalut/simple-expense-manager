@@ -173,7 +173,7 @@ export function calculateGroupBalances(
     if (payment.voidedAt) continue;
     const payer = balances.get(payment.payerUserId);
     const receiver = balances.get(payment.receiverUserId);
-    if (!payer || !receiver || payer === receiver || payment.amountCents <= 0n) throw new Error("Pago inválido.");
+    if (!payer || !receiver || payer === receiver || payment.amountCents <= 0n) throw new Error("Reembolso inválido.");
     payer.balanceCents += payment.amountCents;
     receiver.balanceCents -= payment.amountCents;
   }

@@ -12,6 +12,7 @@ export const householdPayments = pgTable("household_payments", {
   amountCents: bigint("amount_cents", { mode: "bigint" }).notNull(),
   currency: text("currency").notNull().default("ARS"),
   paymentDate: date("payment_date", { mode: "string" }).notNull(),
+  // Nullable legacy field: retained to preserve historical notes; new reembolsos do not write it.
   note: text("note"),
   idempotencyKey: text("idempotency_key").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
