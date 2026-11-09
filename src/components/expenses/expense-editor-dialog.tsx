@@ -69,7 +69,7 @@ type Props = {
   defaultGroupId?: string | null;
   defaultShared?: boolean;
   readOnly?: boolean;
-  onSaved: (message: string, outcome: ExpenseSaveOutcome) => void;
+  onSaved?: (outcome: ExpenseSaveOutcome) => void;
 };
 
 export function ExpenseEditorDialog({
@@ -402,22 +402,19 @@ export function ExpenseEditorDialog({
         }
         const isUpdating = initialExpense !== null || initialIncome !== null;
         const outcome = isUpdating ? "updated" : "created";
-        if (outcome === "created") {
-          toastManager.add({
-            id: savingIncome ? "income-created" : "expense-created",
-            type: "success",
-            title: savingIncome ? "Ingreso guardado" : "Gasto guardado",
-            timeout: 3500,
-            priority: "low",
-          });
-        }
+        toastManager.add({
+          id: savingIncome
+            ? outcome === "created" ? "income-created" : "income-updated"
+            : outcome === "created" ? "expense-created" : "expense-updated",
+          type: "success",
+          title:
+            (savingIncome ? "Ingreso" : "Gasto") +
+            (outcome === "created" ? " guardado" : " actualizado"),
+          timeout: 3500,
+          priority: "low",
+        });
         onOpenChange(false);
-        onSaved(
-          savingIncome
-            ? isUpdating ? "El ingreso quedó actualizado." : "El ingreso quedó guardado."
-            : isUpdating ? "El gasto quedó actualizado." : "El gasto quedó guardado.",
-          outcome,
-        );
+        onSaved?.(outcome);
       } finally {
         submitting.current = false;
       }
@@ -452,7 +449,7 @@ export function ExpenseEditorDialog({
         });
         setShowDeleteConfirmation(false);
         onOpenChange(false);
-        onSaved("", "deleted");
+        onSaved?.("deleted");
       } finally {
         submitting.current = false;
       }

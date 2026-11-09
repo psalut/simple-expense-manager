@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Drawer } from "@base-ui/react/drawer";
 import { Menu } from "@base-ui/react/menu";
+import { Toast } from "@base-ui/react/toast";
 import {
   Archive,
   MoreHorizontal,
@@ -51,6 +52,7 @@ export function CategoryCatalog({
 }: Props) {
   const user = useAppUser();
   const queryClient = useQueryClient();
+  const toastManager = Toast.useToastManager();
   const isMobile = useMobileViewport();
   const [editor, setEditor] = useState<{
     category: CategoryView | null;
@@ -63,14 +65,12 @@ export function CategoryCatalog({
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [replacementCategoryId, setReplacementCategoryId] = useState("");
   const [confirmationError, setConfirmationError] = useState("");
-  const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
   const [isMutating, startMutation] = useTransition();
   const isMutatingRef = useRef(false);
 
   function openEditor(category: CategoryView | null) {
     setError("");
-    setFeedback("");
     editorInstance.current += 1;
     setEditor({ category, instance: editorInstance.current });
   }
@@ -109,9 +109,21 @@ export function CategoryCatalog({
         }
 
         if (current.action === "archive") {
-          setFeedback("La categoría quedó archivada.");
+          toastManager.add({
+            id: "category-archived",
+            type: "success",
+            title: "Categoría archivada",
+            timeout: 3500,
+            priority: "low",
+          });
         } else {
-          setFeedback(`Se eliminó “${current.category.name}” definitivamente.`);
+          toastManager.add({
+            id: "category-deleted",
+            type: "success",
+            title: "Categoría eliminada",
+            timeout: 3500,
+            priority: "low",
+          });
         }
         void invalidateAllPrivateAppData(queryClient, user.id);
         setConfirmation(null);
@@ -125,7 +137,6 @@ export function CategoryCatalog({
     if (isMutatingRef.current) return;
     isMutatingRef.current = true;
     setError("");
-    setFeedback("");
 
     startMutation(async () => {
       try {
@@ -137,7 +148,13 @@ export function CategoryCatalog({
           return;
         }
 
-        setFeedback(`Se restauró “${category.name}”.`);
+        toastManager.add({
+          id: "category-restored",
+          type: "success",
+          title: "Categoría restaurada",
+          timeout: 3500,
+          priority: "low",
+        });
         void invalidateAllPrivateAppData(queryClient, user.id);
       } finally {
         isMutatingRef.current = false;
@@ -233,7 +250,6 @@ export function CategoryCatalog({
 
       <section aria-label="Catálogo de categorías" className="mt-4 space-y-4">
 
-      {feedback && <p className="text-sm text-success" role="status">{feedback}</p>}
       {error && <p className="text-sm text-destructive-foreground" role="alert">{error}</p>}
 
       {categories.length > 0 ? (
@@ -322,11 +338,9 @@ export function CategoryCatalog({
           if (!open) setEditor(null);
         }}
         category={editor?.category ?? null}
-        onSaved={(message) => {
+        onSaved={() => {
           void invalidateAllPrivateAppData(queryClient, user.id);
-          setFeedback(message);
           setError("");
-          setEditor(null);
         }}
       />
 

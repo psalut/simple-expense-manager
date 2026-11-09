@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Drawer } from "@base-ui/react/drawer";
+import { Toast } from "@base-ui/react/toast";
 import { DynamicIcon, iconNames, type IconName } from "lucide-react/dynamic";
 import { createCategoryAction, updateCategoryAction } from "@/app/(app)/categories/actions";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   category: CategoryView | null;
-  onSaved: (message: string) => void;
+  onSaved?: () => void;
 };
 
 export function CategoryEditorDialog({
@@ -25,6 +26,7 @@ export function CategoryEditorDialog({
   onSaved,
 }: Props) {
   const isMobile = useMobileViewport();
+  const toastManager = Toast.useToastManager();
   const [name, setName] = useState(category?.name ?? "");
   const [description, setDescription] = useState(category?.description ?? "");
   const [color, setColor] = useState(category?.color ?? "#2F6F66");
@@ -71,7 +73,14 @@ export function CategoryEditorDialog({
           return;
         }
 
-        onSaved(category ? "La categoría quedó actualizada." : "La categoría quedó guardada.");
+        toastManager.add({
+          id: category ? "category-updated" : "category-created",
+          type: "success",
+          title: category ? "Categoría actualizada" : "Categoría guardada",
+          timeout: 3500,
+          priority: "low",
+        });
+        onSaved?.();
         onOpenChange(false);
       } finally {
         isSubmitting.current = false;

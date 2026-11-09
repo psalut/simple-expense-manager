@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Copy, Link2 } from "lucide-react";
+import { Toast } from "@base-ui/react/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,13 +44,14 @@ export function GroupDetail({
   const [error, setError] = useState("");
   const [code, setCode] = useState("");
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState("");
+  const [copyFallback, setCopyFallback] = useState("");
   const [isPending, startTransition] = useTransition();
+  const toastManager = Toast.useToastManager();
   const groupIsFull = space.members.length === 2;
 
   function createInvitation() {
     setError("");
-    setFeedback("");
+    setCopyFallback("");
     startTransition(async () => {
       const result = await callServerAction(() =>
         createSharedSpaceInvitationAction(space.id),
@@ -64,11 +66,18 @@ export function GroupDetail({
   }
 
   async function copyCode() {
+    setCopyFallback("");
     try {
       await navigator.clipboard.writeText(code);
-      setFeedback("Código copiado. Compartilo con una persona para completar Casa.");
+      toastManager.add({
+        id: "invitation-code-copied",
+        type: "success",
+        title: "Código copiado",
+        timeout: 3500,
+        priority: "low",
+      });
     } catch {
-      setFeedback("Seleccioná el código y copialo para compartirlo.");
+      setCopyFallback("Seleccioná el código y copialo para compartirlo.");
     }
   }
 
@@ -113,9 +122,9 @@ export function GroupDetail({
             {isPending ? "Preparando…" : code ? "Reemplazar código" : "Generar invitación"}
           </Button>
         {error && <p className="text-sm text-destructive-foreground" role="alert">{error}</p>}
-        {feedback && (
-          <p className="text-sm text-success" role="status">
-            {feedback}
+        {copyFallback && (
+          <p className="text-sm text-muted-foreground">
+            {copyFallback}
           </p>
         )}
         {code && !groupIsFull && (

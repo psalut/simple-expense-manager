@@ -38,13 +38,11 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
     movement: PersonalMovementView | null;
     key: number;
   } | null>(null);
-  const [feedback, setFeedback] = useState("");
   const instance = useRef(0);
 
   function openEditor(movement: PersonalMovementView | null) {
     instance.current += 1;
     setEditor({ movement, key: instance.current });
-    setFeedback("");
   }
 
   const movements: PersonalMovementView[] = [
@@ -107,8 +105,6 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
             </span>
           </p>
         )}
-
-        {feedback && <p className="text-sm text-success" role="status">{feedback}</p>}
 
         {movements.length === 0 ? (
         <section className="max-w-xl space-y-4" aria-labelledby="empty-expenses-heading">
@@ -206,10 +202,6 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
         today={today}
         initialExpense={editor?.movement?.kind === "expense" ? editor.movement : null}
         initialIncome={editor?.movement?.kind === "income" ? editor.movement : null}
-        onSaved={(message, outcome) => {
-          setFeedback(outcome === "created" || outcome === "deleted" ? "" : message);
-          setEditor(null);
-        }}
       />
     </>
   );

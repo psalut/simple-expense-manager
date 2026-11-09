@@ -66,7 +66,6 @@ export function GroupExpenses({
   } | null>(null);
   const [newExpenseKey, setNewExpenseKey] = useState<number | null>(null);
   const [paymentDialog, setPaymentDialog] = useState<HouseholdPaymentView | "new" | null>(null);
-  const [feedback, setFeedback] = useState("");
   const [instance, setInstance] = useState(0);
   const groupIsComplete =
     groups.find((group) => group.id === groupId)?.members.length === 2;
@@ -129,7 +128,6 @@ export function GroupExpenses({
     setInstance(key);
     setNewExpenseKey(key);
     setActiveExpense(null);
-    setFeedback("");
   }
 
   function renderExpenseRows(items: GroupExpenseView[], includeDate: boolean) {
@@ -310,11 +308,6 @@ export function GroupExpenses({
       </section>
 
       <section aria-label="Actividad de Casa" className="space-y-3">
-        {feedback && (
-          <p className="text-sm text-success" role="status">
-            {feedback}
-          </p>
-        )}
         {activity.length === 0 ? (
           <div className="flex items-start gap-3 border-y border-border py-5"><ReceiptText size={19} aria-hidden="true" className="mt-0.5 shrink-0 text-muted-foreground" /><p className="text-sm text-muted-foreground">{month ? "No hay movimientos compartidos en " + formatMonth(month) + "." : "Todavía no hay movimientos compartidos."}</p></div>
         ) : <div className="space-y-7">{[...activityByDate.entries()].map(([date, items]) => <section key={date}><h3 className="mb-2 text-sm font-medium capitalize text-muted-foreground">{formatExpenseDate(date, today)}</h3><div>{items.map((item) => item.kind === "expense" ? <div key={"expense-" + item.expense.id}>{renderExpenseRows([item.expense], false)}</div> : renderPaymentRow(item.payment))}</div></section>)}</div>}
@@ -337,10 +330,7 @@ export function GroupExpenses({
         initialExpense={activeExpense?.expense ?? null}
         allowIncomeCreation={false}
         readOnly={activeExpense?.readOnly ?? false}
-        onSaved={(message, outcome) => {
-          setFeedback(outcome === "created" || outcome === "deleted" ? "" : message);
-          setActiveExpense(null);
-          setNewExpenseKey(null);
+        onSaved={() => {
           if (!allowCreate) router.refresh();
         }}
       />
@@ -359,9 +349,7 @@ export function GroupExpenses({
         allowIncomeCreation={false}
         defaultGroupId={groupId}
         defaultShared
-        onSaved={(message, outcome) => {
-          setFeedback(outcome === "created" || outcome === "deleted" ? "" : message);
-          setNewExpenseKey(null);
+        onSaved={() => {
           if (!allowCreate) router.refresh();
         }}
       />
