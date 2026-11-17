@@ -1,15 +1,13 @@
 # Casa — Especificación técnica y seguimiento
 
-**Versión documental:** v0.8 (ingresos personales) · **Actualizado:** 27 de octubre de 2026
+**Versión documental:** v0.8 (ingresos personales) · **Revisado contra el código:** 16 de noviembre de 2026
 **Documento complementario:** `Idea_producto_gestor_gastos_v0.7_2026-10-27_actualizada.md`
 
-## 0. Estado verificado y alcance
+## 0. Estado y alcance
 
-La aplicación para **dos usuarios y un único espacio compartido Casa** está publicada en Vercel y funciona como PWA online en iPhone. Neon fue reiniciado de forma controlada y se aplicaron las migraciones `0000_initial_v07.sql` y `0001_single_household.sql`, más el seed de 8 categorías. Las dos cuentas fueron creadas, Casa vincula a sus integrantes y el registro público fue cerrado; el usuario confirmó pruebas funcionales correctas después del despliegue.
+Esta especificación describe el código del repositorio: Casa admite hasta dos integrantes; también existen gastos e ingresos personales, reembolsos y caché cliente. Los informes anteriores registran un despliegue y una transición de datos, pero no prueban el estado actual de producción, sus migraciones o ramas. Consultar el entorno antes de operar sobre él. El historial de esa transición se conserva en [Activación de Casa](../HOUSEHOLD_TRANSITION.md).
 
-**Última mejora:** el agente implementó caché y optimizaciones de navegación en `perf/navigation-caching`, **sin commit ni despliegue confirmado**. La validación funcional local fue satisfactoria según el usuario y `pnpm build` pasó con Turbopack. Esta mejora no debe documentarse como publicada hasta completar el merge a `main` y la publicación de Vercel.
-
-**Cambio local:** se implementaron ingresos exclusivamente personales y se generó `0002_personal_incomes.sql`. El código está en el árbol de trabajo; la migración aún no está aplicada y no hay commit ni despliegue.
+Las actualizaciones optimistas para gastos están pendientes. Hoy las acciones esperan la confirmación del servidor y luego invalidan las consultas afectadas.
 
 ## 1. Stack
 
@@ -21,8 +19,8 @@ La aplicación para **dos usuarios y un único espacio compartido Casa** está p
 | Autenticación | Better Auth, cookies de sesión; registro público cerrado en producción |
 | Persistencia | PostgreSQL en Neon; Drizzle ORM y migraciones SQL (`expenses` e `incomes`) |
 | IA | Jev (`jev-latest`) mediante HTTP directo a TypeSafe AI |
-| Caché cliente | TanStack Query v5 — implementada en `perf/navigation-caching` |
-| Hosting | Vercel (producción desde rama `main`) |
+| Caché cliente | TanStack Query v5 |
+| Hosting | Vercel según antecedentes; configuración actual no verificada |
 | PWA | Manifest nativo Next.js, íconos definitivos, `standalone`, online-only |
 
 ## 2. Dominio y modelo de datos
@@ -40,23 +38,23 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 - **Total mensual personal:** suma exacta de los gastos del mes registrados/pagados por el usuario, privados y compartidos una sola vez.
 - **Ingresos personales:** entidad `incomes` independiente, propiedad de un usuario, con importe positivo en centavos, detalle y fecha. No tiene categoría ni referencia a grupos; nunca entra en los balances o repartos de Casa.
 - **Saldo personal mensual en Gastos:** si el mes tiene al menos un ingreso, se muestra ingresos del mes menos los gastos que aparecen en el historial personal del mismo mes (gastos privados y gastos compartidos pagados por el usuario, cada uno una vez), incluso si el resultado es cero o negativo. Sin ingresos en el mes, no se muestra el saldo. El badge de total gastado conserva su significado y suma solo gastos.
-- **Categorías:** catálogo global existente; conserva nombre, descripción, color, archivado, restauración y eliminación con reemplazo cuando aplica. En `/categories`, el listado muestra nombre, color y estado; la descripción queda disponible al abrir la edición.
+- **Categorías:** catálogo global existente; conserva nombre, descripción, color, ícono, archivado, restauración y eliminación de archivadas con reemplazo activo obligatorio. En `/categories`, el listado muestra nombre, color y estado; la descripción queda disponible al abrir la edición.
 
 ## 3. Navegación y UX
 
 - Navegación inferior: **Gastos**, **Casa** (ícono corazón), **Categorías**.
 - `/`: historial personal filtrado por mes con gastos e ingresos diferenciados; selector mensual; total gastado centrado bajo el mes en un badge compacto bordó con texto blanco. Debajo de la línea inferior del selector y antes del historial, mostrar el neto centrado dentro de un badge color hueso, con la etiqueta «Saldo del mes» y el mismo espacio vertical hacia la línea y hacia el primer movimiento; header compacto; alta de movimiento desde el encabezado en escritorio y un botón flotante **+** en móvil.
-- `/household`: selector mensual y total del mes de los gastos compartidos de ambos integrantes, centrado bajo el mes en el mismo badge que en Gastos; fila de ancho completo con estado y monto del saldo personal, sin título, subtítulo ni desglose; lista agrupada por día con iniciales de pagador en colores de paleta asignados establemente por ID y sin lista de integrantes; en escritorio, el botón del encabezado, y en móvil, el botón flotante **+**, abren las acciones de Casa. Con deuda activa y dos integrantes se puede elegir cargar un gasto compartido o registrar un pago; sin deuda, el pago queda oculto y la acción disponible abre directamente el alta de gasto. El selector es un bottom sheet en móvil y un dialog en escritorio.
+- `/household`: selector mensual y total del mes de los gastos compartidos de ambos integrantes, centrado bajo el mes en el mismo badge que en Gastos; fila de ancho completo con estado y monto del saldo personal, sin título, subtítulo ni desglose; lista agrupada por día con iniciales de pagador en colores de paleta asignados establemente por ID y sin lista de integrantes; en escritorio, el botón del encabezado, y en móvil, el botón flotante **+**, abren las acciones de Casa. Con deuda activa y dos integrantes se puede elegir cargar un gasto compartido o registrar un reembolso; sin deuda, el pago queda oculto y la acción disponible abre directamente el alta de gasto. El selector es un bottom sheet en móvil y un dialog en escritorio.
 - Al crear desde Gastos, el encabezado muestra «Nuevo movimiento» junto a un selector segmentado Gasto/Ingreso, con Gasto seleccionado inicialmente. Al editar, conserva «Editar gasto» o «Editar ingreso» y no permite cambiar el tipo. Desde Casa, se mantiene «Nuevo gasto» y el flujo compartido sin selector ni opción de ingresos.
 - El formulario de ingreso solo muestra importe, detalle y fecha; al alternar durante el alta se conservan importe, detalle y fecha y se limpian categoría y grupo según corresponda.
-- Los círculos de perfil muestran iniciales del nombre y apellido, con fallback al correo y luego a «U» si falta el nombre. Tras confirmar una creación o eliminación de movimiento, Base UI muestra un toast de éxito que se cierra automáticamente en 3,5 segundos; el viewport móvil queda por encima de la navegación inferior.
+- Los círculos de perfil muestran iniciales del nombre y apellido, con fallback al correo y luego a «U» si falta el nombre. Tras confirmar una creación, edición o eliminación de movimiento, Base UI muestra un toast de éxito que se cierra automáticamente en 3,5 segundos; el viewport móvil queda por encima de la navegación inferior.
 - `/categories`: administración del catálogo global; el listado muestra nombre, color y estado, y la descripción se consulta al abrir la edición de una categoría. Sin título interno «Catálogo global»; alta desde el encabezado en escritorio y un botón flotante **+** en móvil.
 - Drawer en móvil / Dialog en escritorio, calendario amplio, fecha con TZ coherente en Buenos Aires, zonas táctiles adecuadas y áreas seguras en modo PWA. El toast temporal no captura eventos fuera de su propia superficie.
 - Las rutas heredadas de grupos no forman parte de la navegación principal; sus redirecciones/comportamiento deben respetar la implementación actual y la autorización.
 
 ## 4. Autenticación y privacidad
 
-- Better Auth gestiona cuentas y sesiones; `AUTH_REGISTRATION_CLOSED=true` en Vercel después del onboarding de ambas personas.
+- Better Auth gestiona cuentas y sesiones. `AUTH_REGISTRATION_CLOSED=true` cierra el registro y limita el acceso a los dos integrantes de Casa; verificar la configuración efectiva de cada entorno.
 - Recuperación administrativa sin correo: `node scripts/reset-user-password.mjs --email usuario@dominio --confirm-email usuario@dominio` solicita la nueva contraseña en una terminal sin mostrarla. Usa `DATABASE_URL` de `.env.local`, exige confirmación adicional para bases remotas y revoca las sesiones existentes. No pasar contraseñas como argumentos ni guardarlas en archivos.
 - En todos los endpoints y mutaciones se valida la sesión y la titularidad/membresía antes de leer o escribir.
 - Un integrante no puede modificar ni eliminar el gasto de otro.
@@ -64,9 +62,9 @@ Se mantienen las tablas de autenticación, `shared_spaces`, `shared_space_member
 - Limpiar la caché al dejar de ser válida la sesión y evitar exponer datos de la cuenta anterior tras cerrar sesión/cambiar de usuario.
 - No almacenar `DATABASE_URL`, `BETTER_AUTH_SECRET` ni `TYPESAFE_API_KEY` en cliente o Git.
 
-## 5. Caché de navegación y consultas — implementación reciente
+## 5. Caché de navegación y consultas
 
-**Estado:** código implementado en `perf/navigation-caching`, sin merge/deploy confirmado.
+El comportamiento siguiente describe el código, sin afirmar su despliegue.
 
 ### Estrategia
 
@@ -102,60 +100,20 @@ Se conserva el flujo preexistente de categorización automática por HTTP direct
 
 ## 8. Base de datos y migraciones
 
-Reset autorizado y ejecutado en Neon `neondb`, proyecto `steep-pond-82785204`, rama reportada `br-round-pond-b65n8fp3`. Se eliminaron únicamente las tablas, funciones y el ledger de migraciones de la aplicación; se conservaron la base y los esquemas.
+El repositorio contiene `0000_initial_v07.sql`, `0001_single_household.sql`, `0002_personal_incomes.sql`, `0003_category_icons.sql`, `0004_category_description_1000.sql` y `0005_household_payments.sql`. La presencia de los archivos no demuestra su aplicación en ningún entorno. `pnpm db:migrate` actúa sobre `DATABASE_URL`; verificar el destino y el historial antes de ejecutarlo. No se aplican migraciones como parte del build. El repositorio no ofrece actualmente un comando de seed.
 
-Orden aplicado en producción: `0000_initial_v07.sql` → `0001_single_household.sql`. El ledger quedó sincronizado con los hashes locales. Se ejecutó el seed y quedaron ocho categorías; inicialmente cero usuarios/gastos, seguidos por onboarding real de las dos cuentas y Casa. La nueva migración `0002_personal_incomes.sql` agrega la tabla independiente de ingresos y aún no se aplicó. **No repetir el reset**: la base ahora contiene datos reales.
+El antecedente del reset y las migraciones ejecutadas en octubre de 2026 se conserva como registro histórico en [Activación de Casa](../HOUSEHOLD_TRANSITION.md); no repetir operaciones destructivas sobre datos reales.
 
-Migraciones en producción deben ejecutarse de forma explícita y controlada, no como efecto secundario de `pnpm build`.
+## 9. Reembolsos entre integrantes
 
-## 9. Validación
+La interfaz los denomina «reembolsos». `household_payments` guarda participantes, creador, importe en centavos, fecha, clave de idempotencia y anulación. Los reembolsos no permiten ingresar ni editar notas, y no se prevé solicitarlas en este flujo. La columna `note` puede conservarse por compatibilidad con datos históricos; la escritura de nuevos reembolsos no la usa. La propuesta anterior de una nota opcional quedó descartada. Cualquiera de los dos integrantes puede registrar o anular un reembolso; el servidor deriva de la deuda quién paga y recibe, comprueba que no exceda la deuda y serializa la operación con mutaciones de gastos y membresía. Para corregirlo se anula y se registra otro. La fecha no puede ser futura; no se reconstruyen saldos históricos.
 
-### Refactorización de Casa y producción
+El saldo acumulado es gastos pagados menos parte asignada, más reembolsos activos enviados menos recibidos. La actividad se filtra por mes, incluye anulaciones y el total mensual suma únicamente gastos. Los reembolsos no forman parte del saldo personal mensual. No hay actualización optimista ni tiempo real.
 
-- En su fase de entrega: 46 unitarias y 14 de integración PASS; lint, TypeScript y build aprobados.
-- Se verificó en navegador un gasto privado QA temporal y su eliminación completa sin cambios residuales.
-- Después del reset: creación de dos cuentas, acceso a Casa, cierre del registro y recorrido de producción confirmados por el usuario.
-- PWA instalada en iPhone; validación funcional positiva.
+## 10. Verificación y pendientes
 
-### Optimización de navegación (rama `perf/navigation-caching`)
+Las pruebas unitarias y de integración, lint, tipos y build se describen en el [README](../README.md). Las pruebas de integración requieren una base local descartable explícita; crean y eliminan esquemas aislados. Los resultados históricos no garantizan el estado actual. Quedan pendientes las actualizaciones optimistas de gastos y confirmar por separado el estado de migraciones y despliegue de cada entorno.
 
-- `pnpm lint`: PASS.
-- `pnpm exec tsc --noEmit`: PASS.
-- `pnpm test`: **53 PASS**.
-- `git diff --check`: PASS informado por el agente.
-- `pnpm exec next build --webpack`: PASS informado por el agente.
-- `pnpm build` (Next.js 16.4.3, Turbopack): **PASS**, repetido por el usuario; compilación optimizada en **14,1 s**, TypeScript y generación de páginas correctas.
-- Prueba funcional de navegación/caché local: **satisfactoria**, confirmada por el usuario.
-- Quedan sin evidencia cuantitativa tiempos de navegación antes/después y una prueba automatizada completa con dos sesiones contra Neon para esta versión de caché.
+## 11. Límites de producto
 
-### Ingresos personales (cambio local)
-
-- `pnpm test`: **64 PASS**.
-- `pnpm lint`: PASS.
-- `pnpm exec tsc --noEmit`: PASS.
-- `pnpm exec next build --webpack`: PASS.
-- `pnpm build` (Turbopack) quedó más de dos minutos en `compile`; se interrumpió y se validó el build con webpack, que sí terminó correctamente.
-- `git diff --check`: PASS; Git solo advirtió que normalizará CRLF a LF en los documentos.
-- `pnpm test:integration` con el esquema aislado del repositorio: no llegó a iniciar pruebas porque el host de Neon no resolvió por DNS (`ENOTFOUND`). No se pudo comprobar en esta ejecución la autorización con PostgreSQL.
-- La migración `0002_personal_incomes.sql` se generó, pero no se aplicó a ninguna base.
-
-## 10. Estado Git y próximos pasos
-
-- Rama de performance: `perf/navigation-caching`.
-- **Sin commit ni merge confirmado** para esta optimización en la conversación actual.
-- Commit propuesto: `perf: speed up tab navigation with client caching`.
-- Flujo habitual: commit → merge directo a `main` (sin PR) → push → deployment automático en Vercel → smoke test con ambos teléfonos.
-- Comprobar en producción que volver a una pestaña ya visitada es fluido, que mutaciones propias invalidan los datos afectados y que Casa revalida cambios de la otra persona al entrar.
-- Pendientes no bloqueantes: experiencia ante desconexión/reintentos, evaluación posterior de Jev y ampliaciones puntuales de pruebas de seguridad HTTP/CSRF.
-
-## 11. Límites explícitos
-
-No introducir múltiples hogares, categorías por grupo, repartos configurables, presupuestos, notificaciones, persistencia offline ni infraestructura Redis/WebSocket sin una necesidad real confirmada.
-
-**Objetivo técnico:** navegación rápida y datos correctos para dos usuarios, sin sacrificar privacidad ni simplicidad.
-
-## Pagos entre integrantes — implementación local
-
-`household_payments` registra pagos en ARS y centavos, participantes, creador, fecha, nota, clave de idempotencia y anulación. La migración aditiva `0005_household_payments.sql` no requiere backfill y debe aplicarse explícitamente; no hay despliegue ni aplicación a producción confirmados. Las claves foráneas protegen la membresía histórica.
-
-El saldo acumulado es gastos pagados menos parte asignada, más pagos activos enviados menos pagos activos recibidos. Ambas personas pueden registrar o anular; el servidor deriva la dirección y valida el saldo bajo el mismo bloqueo transaccional que las mutaciones de gastos y membresía. Un pago se corrige mediante anulación y nuevo registro. Fechas pasadas son informativas; no se permiten futuras ni se reconstruyen balances históricos. La actividad se filtra por mes; el total mensual conserva solo gastos. Los pagos no participan en ingresos ni saldo personal. No hay actualización optimista ni tiempo real.
+No se ofrecen múltiples hogares, categorías por grupo, repartos configurables, presupuestos, notificaciones ni persistencia offline. Los grupos anteriores a Casa conservan rutas y datos autorizados como legado; consultar [Activación de Casa](../HOUSEHOLD_TRANSITION.md).

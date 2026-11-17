@@ -1,8 +1,6 @@
 # Activación de Casa
 
-Las decisiones del pedido de implementación de Casa prevalecen sobre los flujos
-multigrupo de la documentación v0.7. Los dos documentos de `docs/` se conservan
-sin reescribir, según lo solicitado. Categorías y Jev no cambian.
+Guía de configuración y registro histórico de la transición a Casa. Los apartados de inventario, reset y pasos pendientes describen el momento de esa operación, no el estado actual de una base o despliegue. Los documentos de `docs/` describen el código vigente.
 
 ## Configuración de servidor
 
@@ -67,8 +65,7 @@ invitaciones, gastos y categorías fueron descartados deliberadamente.
 
 Luego `pnpm db:migrate` aplicó una sola vez `0000_initial_v07.sql` y
 `0001_single_household.sql`, en ese orden. El ledger quedó con dos entradas; sus
-timestamps y hashes coinciden con el journal y los SQL locales. El seed habitual
-`pnpm db:seed` cargó ocho categorías. La verificación final encontró cero cuentas,
+timestamps y hashes coinciden con el journal y los SQL locales. El informe histórico registró la carga de ocho categorías mediante un seed que ya no está disponible en este repositorio. La verificación final encontró cero cuentas,
 usuarios, sesiones, grupos, membresías, invitaciones y gastos; no se crearon datos
 QA. No volver a ejecutar el reset sin autorización expresa.
 
@@ -78,11 +75,10 @@ trigger del límite de dos miembros. La base queda lista para crear Casa al inic
 la incorporación, pero todavía no hay cuentas ni grupo. Categorías y Jev no fueron
 modificados; Vercel no recibió cambios ni deployment.
 
-## Pasos pendientes para incorporar las dos cuentas
+## Procedimiento de incorporación (referencia histórica)
 
-1. Antes del registro, abrir `AUTH_REGISTRATION_CLOSED=false` (o quitar la
-   variable) en el runtime que se use para la incorporación. En `.env.local` la
-   variable sigue actualmente en `true`; Vercel no fue consultado.
+1. Para una instalación nueva, antes del registro, abrir `AUTH_REGISTRATION_CLOSED=false` (o quitar la
+   variable) en el runtime que se use para la incorporación. Verificar la configuración efectiva del entorno; no asumir valores históricos.
 2. La primera persona se registra e inicia sesión, abre `/household` y elige
    **Preparar Casa**. Esto crea el grupo Casa con esa persona como primer miembro.
 3. Desde Casa, la primera persona genera una invitación y comparte su código. La
@@ -115,18 +111,4 @@ pnpm build
 git diff --check
 ```
 
-Las unitarias no acceden a una DB. Las pruebas de integración se ejecutan aparte:
-
-```powershell
-$env:RUN_DB_INTEGRATION='true'
-pnpm test:integration
-Remove-Item Env:RUN_DB_INTEGRATION
-```
-
-Cada archivo crea un esquema `test_household_<aleatorio>`, verifica el aislamiento
-antes de inicializarlo y lo elimina al terminar. Usa conexión directa a Neon,
-sin pooler, para conservar `search_path`. No usa las categorías, usuarios ni
-gastos públicos como fixtures. El nuevo esquema prueba 0001 y el anterior
-preserva los nueve casos de autorización, con un grupo legado sintético.
-No reemplazan pruebas HTTP de CSRF/origin ni ensayos de teclado/safe-area en
-teléfonos físicos.
+Las unitarias no acceden a una DB. Las pruebas de integración requieren `RUN_DB_INTEGRATION=true` y `TEST_DATABASE_URL` explícita hacia PostgreSQL local descartable con nombre `casa_test` o `casa_test_<sufijo>`. El setup crea y elimina esquemas aislados; revisar `tests/integration-database.ts` antes de ejecutarlas. No reemplazan ensayos HTTP completos ni pruebas en teléfonos físicos.

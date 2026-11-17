@@ -1,15 +1,13 @@
 # Casa — Idea de producto y seguimiento
 
-**Versión documental:** v0.8 (ingresos personales) · **Actualizado:** 27 de octubre de 2026
+**Versión documental:** v0.8 (ingresos personales) · **Revisado contra el código:** 16 de noviembre de 2026
 **Documento complementario:** `Especificacion_tecnica_gestor_gastos_MVP_v0.7_2026-10-27_actualizada.md`
 
 ## 1. Estado actual
 
-**Casa** es una aplicación privada y mobile-first para registrar gastos personales y los gastos compartidos de **dos personas**. Ya está desplegada en Vercel, conectada a Neon e instalada y validada como PWA en iPhone. El registro público está cerrado tras crear las dos cuentas.
+El código del repositorio implementa una aplicación privada mobile-first para gastos e ingresos personales, gastos compartidos y reembolsos de dos integrantes de Casa. Las rutas de grupos históricos se conservan para consultar datos autorizados; no constituyen administración de múltiples hogares.
 
-La refactorización a un único hogar y la implementación PWA fueron confirmadas por el usuario como correctas en producción. La optimización más reciente de navegación con caché fue implementada en la rama `perf/navigation-caching` y probada satisfactoriamente por el usuario **en local**. **No consta todavía commit, merge ni despliegue de esa optimización**; distinguirla de la versión publicada hasta que se integre a `main`.
-
-El registro de ingresos personales está implementado en el árbol de trabajo. Aún no tiene commit, migración aplicada, merge ni despliegue.
+La documentación histórica registra un despliegue previo y pruebas en iPhone, pero el repositorio por sí solo no confirma qué revisión o migraciones están hoy desplegadas. Verificar ese estado en cada entorno. Las actualizaciones optimistas de gastos están pendientes: las operaciones esperan confirmación del servidor.
 
 ## 2. Principios del producto
 
@@ -32,28 +30,28 @@ El registro de ingresos personales está implementado en el árbol de trabajo. A
 
 ### Casa (`/household`)
 
-- Acceso directo desde la pestaña **Casa**, con ícono de corazón; no hay listado ni selector de grupos.
+- Acceso directo desde la pestaña **Casa**, con ícono de corazón; no hay listado ni selector de hogares; si existen grupos históricos autorizados, aparece un acceso a su historial.
 - Selector mensual y total de gastos compartidos de ambos integrantes, centrado debajo del mes en el mismo badge que en Gastos; los gastos del mes se agrupan por día y muestran las iniciales de quien pagó cada uno en un badge con color estable por persona.
 - Se muestra el saldo personal acumulado del usuario autenticado en una única fila de ancho completo, con estado a favor, deuda o saldo equilibrado (incluido el cero). No incluye título, subtítulo, desglose ni saldo de la otra persona; tampoco muestra una lista de integrantes. El reparto 50/50 se mantiene como regla del dominio.
-- El alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil, sin un título interno para la lista de gastos compartidos. Ambos abren el selector de acciones cuando existe una deuda y Casa tiene dos integrantes: cargar un gasto compartido o registrar un pago. Sin deuda, se oculta la acción de pago y el botón disponible abre directamente el alta de gasto. El selector aparece como bottom sheet en móvil y dialog en escritorio.
-- Alta de gasto desde Casa con opción Compartido activada automáticamente. «Registrar pago» permite a cualquiera de los integrantes registrar o anular pagos parciales o totales. La actividad mensual intercala gastos y pagos, incluso los anulados; el total mensual suma solo gastos y el balance es acumulado.
+- El alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil, sin un título interno para la lista de gastos compartidos. Ambos abren el selector de acciones cuando existe una deuda y Casa tiene dos integrantes: cargar un gasto compartido o registrar un reembolso. Sin deuda, se oculta la acción de reembolso y el botón disponible abre directamente el alta de gasto. El selector aparece como bottom sheet en móvil y dialog en escritorio.
+- Alta de gasto desde Casa con opción Compartido activada automáticamente. «Registrar reembolso» permite a cualquiera de los integrantes registrar o anular pagos parciales o totales. La actividad mensual intercala gastos y pagos, incluso los anulados; el total mensual suma solo gastos y el balance es acumulado.
 - Invitación utilizada únicamente para incorporar a la segunda cuenta durante el onboarding.
 
 ### Categorías (`/categories`)
 
-**Sin cambios funcionales respecto de la implementación anterior.** Catálogo global editable, con nombre, descripción, color y estado activa/archivada. El listado muestra nombre, color y estado; la descripción se consulta al abrir la edición de cada categoría. La pantalla conserva únicamente el título principal «Categorías»; el alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil. Se mantiene la posibilidad de archivar, restaurar y eliminar con reemplazo seguro cuando corresponde. No existen catálogos de categorías por grupo. Los cambios son visibles para ambos usuarios, sin revelar gastos privados ajenos.
+Catálogo global editable, con nombre, descripción, color, ícono y estado activa/archivada. El listado muestra nombre, color y estado; la descripción se consulta al abrir la edición de cada categoría. La pantalla conserva únicamente el título principal «Categorías»; el alta usa un botón en el encabezado en escritorio y un botón flotante **+** en móvil. Se mantiene la posibilidad de archivar, restaurar y eliminar una categoría archivada con reemplazo por otra activa. No existen catálogos de categorías por grupo. Los cambios son visibles para ambos usuarios, sin revelar gastos privados ajenos.
 
 ### Cuenta y autenticación
 
-Better Auth gestiona sesiones. El registro público está cerrado después de registrar las dos cuentas. Cada usuario ve únicamente los datos autorizados; una sesión inválida no debe conservar datos privados visibles.
+Better Auth gestiona sesiones. El cierre del registro y la restricción a los dos integrantes dependen de `AUTH_REGISTRATION_CLOSED`; verificar la configuración efectiva de cada entorno. Cada usuario ve únicamente los datos autorizados; una sesión inválida no debe conservar datos privados visibles.
 
 ## 4. Registro de gastos
 
-Formulario reutilizado en Drawer móvil y Dialog de escritorio. Al crear desde Gastos, el encabezado muestra «Nuevo movimiento» a la izquierda y un selector segmentado Gasto/Ingreso a la derecha, con Gasto seleccionado inicialmente. Gasto conserva importe positivo en ARS, detalle, categoría global activa, fecha y el selector Compartido apagado. Ingreso conserva importe, detalle y fecha; no muestra categoría ni selector compartido. Al editar, el título es «Editar gasto» o «Editar ingreso» y el tipo queda fijo. Al alternar durante el alta se limpian categoría y grupo, conservando importe, detalle y fecha. El detalle usa el placeholder «Ingresá un detalle». El importe agrupa los miles con puntos mientras se escribe, acepta coma o punto para ingresar hasta dos decimales y muestra dos cifras decimales si se ingresan centavos (por ejemplo, `500000` → `500.000` y `1020.8` → `1.020,80`). Desde Casa, Compartido inicia activado y no se muestra el selector de tipo ni se ofrecen ingresos. No hay selector de hogar, grupo ni participantes. Al guardar o eliminar un movimiento y confirmar el servidor la operación, se muestra un toast de éxito temporal.
+Formulario reutilizado en Drawer móvil y Dialog de escritorio. Al crear desde Gastos, el encabezado muestra «Nuevo movimiento» a la izquierda y un selector segmentado Gasto/Ingreso a la derecha, con Gasto seleccionado inicialmente. Gasto conserva importe positivo en ARS, detalle, categoría global activa, fecha y el selector Compartido apagado. Ingreso conserva importe, detalle y fecha; no muestra categoría ni selector compartido. Al editar, el título es «Editar gasto» o «Editar ingreso» y el tipo queda fijo. Al alternar durante el alta se limpian categoría y grupo, conservando importe, detalle y fecha. El detalle usa el placeholder «Ingresá un detalle». El importe agrupa los miles con puntos mientras se escribe, acepta coma o punto para ingresar hasta dos decimales y muestra dos cifras decimales si se ingresan centavos (por ejemplo, `500000` → `500.000` y `1020.8` → `1.020,80`). Desde Casa, Compartido inicia activado y no se muestra el selector de tipo ni se ofrecen ingresos. No hay selector de hogar, grupo ni participantes. Al crear, editar o eliminar un movimiento y confirmar el servidor la operación, se muestra un toast de éxito temporal.
 
 Los ingresos se guardan en una entidad independiente con titular, importe en centavos, detalle y fecha. Son visibles solo para su titular. El saldo personal mensual suma los ingresos y resta los gastos del historial personal de ese mes; el total gastado conserva solo gastos. Los ingresos no afectan balances, deudas, repartos ni listados de Casa.
 
-Los pagos se registran en centavos, con fecha no futura y nota opcional; no son gastos ni ingresos personales. Para corregirlos se anulan y se registran de nuevo. La dirección se deriva de la deuda vigente.
+Los reembolsos se registran en centavos y con fecha no futura; no son gastos ni ingresos personales. No se permite ingresar ni editar notas y no se prevé solicitarlas en este flujo. La columna `note` puede conservarse por compatibilidad con datos históricos. Una versión anterior proponía una nota opcional; esa propuesta quedó descartada. Para corregirlos se anulan y se registran de nuevo. La dirección se deriva de la deuda vigente.
 
 Los gastos compartidos se reparten 50/50 entre los dos integrantes. Cuando el importe en centavos es impar, el centavo adicional corresponde al pagador. El pagador es el autor del gasto. Otros integrantes pueden consultar un gasto compartido en solo lectura, nunca editarlo o borrarlo.
 
@@ -69,35 +67,16 @@ Se mantiene la sugerencia de categorías con Jev mediante la API HTTP directa de
 - Instalación desde Chrome/Safari de iPhone confirmada por el usuario como correcta.
 - Sin service worker, notificaciones push, persistencia offline ni sincronización en segundo plano.
 
-## 7. Rendimiento y caché — nueva mejora
+## 7. Rendimiento y caché
 
-Implementada en `perf/navigation-caching` y validada localmente por el usuario:
+TanStack Query v5 mantiene consultas privadas en memoria por usuario; Gastos también se segmenta por mes. Los datos permanecen frescos cinco minutos y la caché inactiva se conserva hasta treinta. Las mutaciones confirmadas invalidan los datos afectados; Casa se consulta en segundo plano al entrar para detectar cambios de la otra persona. No hay sincronización en tiempo real ni actualizaciones optimistas. Las respuestas HTTP privadas son `private, no-store`.
 
-- TanStack Query v5 guarda datos privados **solo en memoria** por usuario.
-- `staleTime`: **5 minutos**; invalidaciones tras crear, editar y eliminar gastos; revalidación de Casa al entrar para detectar cambios hechos desde el otro teléfono.
-- Gastos, Casa y Categorías consumen endpoints autenticados; las respuestas HTTP privadas declaran `Cache-Control: private, no-store`.
-- Se redujeron lecturas repetidas de sesión/Casa y se unificó la lectura mensual de gastos y su total, conservando operaciones monetarias exactas con `BigInt`.
-- La caché se elimina al perder la sesión y no se persiste en disco.
-- El usuario confirmó que la navegación optimizada **funcionó excelente** en sus pruebas locales. No constan métricas numéricas reproducibles de antes/después.
+## 8. Estado y pendientes
 
-**Consistencia esperada:** los cambios propios invalidan la caché de consultas afectadas. Los cambios de la otra persona se comprueban al entrar en Casa; no hay sincronización en tiempo real ni WebSockets.
-
-## 8. Estado de calidad y pendientes
-
-**Verificado en esta iteración de performance:** `pnpm lint`, TypeScript, **53 pruebas**, `git diff --check` y `pnpm build` con Turbopack (compilación exitosa según salida compartida por el usuario). El agente también compiló con webpack; un fallo anterior del worker CSS no se reprodujo al repetir el build local. La prueba de navegación local fue satisfactoria.
-
-**Verificado para ingresos personales en el árbol de trabajo:** 64 pruebas unitarias, lint, TypeScript y compilación webpack pasan. La compilación predeterminada de Turbopack quedó más de dos minutos en `compile` y se interrumpió. La prueba de integración no pudo conectarse al host de Neon por un fallo DNS (`ENOTFOUND`); la migración no fue aplicada.
-
-**Verificaciones anteriores:** refactorización Casa (46 unitarias y 14 de integración en esa etapa), permisos y flujos de gastos, uso de Neon con esquema reiniciado (`0000_initial_v07.sql` + `0001_single_household.sql`), creación de dos cuentas, cierre de registro, despliegue en Vercel e instalación real de la PWA en iPhone.
-
-**Pendientes inmediatos:** revisar el diff de `perf/navigation-caching`, commit Conventional Commit, merge directo a `main`, push y validación de rendimiento en la versión de producción desplegada. Confirmar luego navegación y coherencia del balance entre los dos dispositivos en producción.
-
-**Pendientes no bloqueantes:** mejorar mensajes/reintentos ante pérdida de conexión, afinar Jev según uso real y considerar controles HTTP/CSRF adicionales si se amplía la cobertura de seguridad. Mantener el producto sencillo.
+El código contiene ingresos personales, reembolsos, caché de navegación y las migraciones correspondientes. Su presencia no demuestra que estén desplegados o aplicados en una base concreta. Quedan pendientes las actualizaciones optimistas de gastos y la verificación del estado real de cada entorno. Los informes de validación anteriores describen ejecuciones históricas, no resultados de esta auditoría; los comandos reproducibles figuran en el [README](../README.md).
 
 ## 9. Convenciones de trabajo
 
-- Ramas por funcionalidad; merges directos a `main`, sin PR.
-- Commits Conventional Commits en inglés; para esta mejora: `perf: speed up tab navigation with client caching`.
-- Conservar documentación vigente en `docs/` y tests reproducibles; no subir informes temporales de E2E ni secretos.
+Mantener la documentación y las pruebas junto al código, usar commits Conventional Commits en inglés y no subir secretos. El historial de transición y sus operaciones sensibles está en [Activación de Casa](../HOUSEHOLD_TRANSITION.md).
 
 **Principio rector:** un único Casa para dos, gastos privados o compartidos, categorías globales intactas, reparto 50/50 y navegación rápida.

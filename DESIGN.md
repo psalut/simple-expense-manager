@@ -50,7 +50,7 @@ components:
 
 Casa se siente cálida, íntima y práctica: acompaña la organización cotidiana de dos personas sin convertir cada gasto en una alerta. La paleta aprobada combina un bordó reservado para acciones clave con verdes apagados de acompañamiento y un neutro hueso cálido. El blanco y la tinta oscura actuales siguen sosteniendo la legibilidad y la claridad.
 
-La experiencia conserva el enfoque mobile-first y la identidad Rhea que ya usa la aplicación. Los botones y superficies deben sentirse más táctiles, con elevación perceptible donde ayude a reconocer una acción o una capa. Esta dirección queda documentada para la futura aplicación de color; los estilos activos todavía son los definidos en `src/app/globals.css`.
+La experiencia conserva el enfoque mobile-first y la identidad Rhea que ya usa la aplicación. Los botones y superficies deben sentirse más táctiles, con elevación perceptible donde ayude a reconocer una acción o una capa. Los tokens de marca ya están presentes en `src/app/globals.css`; las recomendaciones de esta guía no garantizan que cada detalle visual esté implementado.
 
 **Key Characteristics:**
 - Cálida, serena e íntima, con una jerarquía práctica.
@@ -61,7 +61,7 @@ La experiencia conserva el enfoque mobile-first y la identidad Rhea que ya usa l
 
 ## Colors
 
-La paleta aprobada agrega calidez y reconocimiento sin reemplazar los neutros funcionales ni los colores semánticos del producto. Estos cuatro colores son tokens de destino para una etapa posterior; todavía no están aplicados a la interfaz.
+La paleta aprobada agrega calidez y reconocimiento sin reemplazar los neutros funcionales ni los colores semánticos del producto. Estos cuatro colores están definidos como tokens de marca en los estilos activos.
 
 ### Primary
 - **Bordeaux** (`#6A041D`): acento primario para acciones clave —por ejemplo, crear o guardar—, selección y foco visible sobre superficies claras. Combina con texto blanco o Bone y no representa errores.
@@ -129,14 +129,14 @@ Conservar la geometría redondeada de Rhea: radio base observado de 10 px, contr
 
 ### Buttons
 - **Shape:** controles redondeados (16 px), con altura táctil mínima de 44 px; el FAB actual tiene 56 px.
-- **Primary:** en la dirección futura, fondo Bordeaux y texto blanco para la acción principal de una vista.
+- **Primary:** fondo Bordeaux y texto blanco para la acción principal de una vista.
 - **Hover / Focus:** hover con un cambio sutil de elevación; `focus-visible` con anillo Bordeaux bien contrastado y separación visible del control.
 - **Active / Disabled:** active con breve presión hacia abajo. Disabled conserva texto identificable y semántica de deshabilitado; no depende solo de bajar opacidad.
 - **Secondary / Ghost:** mantenerlos visualmente subordinados, con superficie o borde legible y sin competir con la acción principal.
 
 ### Cards / Containers
 - **Corner Style:** redondeo amplio de hasta 24 px.
-- **Background:** combinar blanco actual y Bone propuesto para capas con propósito.
+- **Background:** combinar blanco actual y Bone para capas con propósito.
 - **Shadow Strategy:** elevación táctil moderada en superficies interactivas; verificar el límite mediante borde o sombra cuando Bone esté sobre blanco.
 - **Internal Padding:** usar la escala común, con 16 px como base habitual y 24 px en contenedores más amplios cuando el espacio lo permita.
 
@@ -169,4 +169,4 @@ Conservar la geometría redondeada de Rhea: radio base observado de 10 px, contr
 - **Don't** usar Bone sobre blanco como única señal de separación.
 - **Don't** codificar éxito, advertencia o error solamente con el color de marca.
 - **Don't** extender sombras fuertes a todas las filas o elementos pasivos.
-- **Don't** aplicar la paleta aprobada a los estilos activos hasta el paso de implementación de color.
+- **Don't** asumir que un token de marca garantiza contraste suficiente en todas sus combinaciones.
