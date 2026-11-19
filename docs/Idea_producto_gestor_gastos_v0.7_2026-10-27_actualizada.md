@@ -7,7 +7,7 @@
 
 El código del repositorio implementa una aplicación privada mobile-first para gastos e ingresos personales, gastos compartidos y reembolsos de dos integrantes de Casa. Las rutas de grupos históricos se conservan para consultar datos autorizados; no constituyen administración de múltiples hogares.
 
-La documentación histórica registra un despliegue previo y pruebas en iPhone, pero el repositorio por sí solo no confirma qué revisión o migraciones están hoy desplegadas. Verificar ese estado en cada entorno. Las actualizaciones optimistas de gastos están pendientes: las operaciones esperan confirmación del servidor.
+La documentación histórica registra un despliegue previo y pruebas en iPhone, pero el repositorio por sí solo no confirma qué revisión o migraciones están hoy desplegadas. Verificar ese estado en cada entorno. Los gastos se reflejan optimistamente al crear, editar o eliminar; los cambios se confirman y reconcilian con el servidor. Ingresos y reembolsos mantienen su flujo actual.
 
 ## 2. Principios del producto
 
@@ -69,11 +69,11 @@ Se mantiene la sugerencia de categorías con Jev mediante la API HTTP directa de
 
 ## 7. Rendimiento y caché
 
-TanStack Query v5 mantiene consultas privadas en memoria por usuario; Gastos también se segmenta por mes. Los datos permanecen frescos cinco minutos y la caché inactiva se conserva hasta treinta. Las mutaciones confirmadas invalidan los datos afectados; Casa se consulta en segundo plano al entrar para detectar cambios de la otra persona. No hay sincronización en tiempo real ni actualizaciones optimistas. Las respuestas HTTP privadas son `private, no-store`.
+TanStack Query v5 mantiene consultas privadas en memoria por usuario; Gastos también se segmenta por mes. Los datos permanecen frescos cinco minutos y la caché inactiva se conserva hasta treinta. Los gastos se actualizan de inmediato en las vistas personales y de Casa, y se revalidan las claves afectadas tras la respuesta del servidor. Las operaciones sobre el mismo gasto se ordenan; un error revierte solo ese cambio. El balance acumulado de Casa, calculado por el servidor, se identifica como pendiente de sincronización hasta recibir una lectura confirmada. Casa también se consulta en segundo plano al entrar para detectar cambios de la otra persona. No hay sincronización en tiempo real. Las respuestas HTTP privadas son `private, no-store`.
 
 ## 8. Estado y pendientes
 
-El código contiene ingresos personales, reembolsos, caché de navegación y las migraciones correspondientes. Su presencia no demuestra que estén desplegados o aplicados en una base concreta. Quedan pendientes las actualizaciones optimistas de gastos y la verificación del estado real de cada entorno. Los informes de validación anteriores describen ejecuciones históricas, no resultados de esta auditoría; los comandos reproducibles figuran en el [README](../README.md).
+El código contiene ingresos personales, reembolsos, caché de navegación, actualizaciones optimistas de gastos y las migraciones correspondientes. Su presencia no demuestra que estén desplegados o aplicados en una base concreta. Sigue pendiente verificar el estado real de cada entorno. Los informes de validación anteriores describen ejecuciones históricas, no resultados de esta auditoría; los comandos reproducibles figuran en el [README](../README.md).
 
 ## 9. Convenciones de trabajo
 

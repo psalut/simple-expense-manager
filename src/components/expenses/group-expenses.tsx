@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { inSelectedMonth } from "@/lib/household-payments/activity";
 import { PaymentDialog } from "@/components/groups/payment-dialog";
 import { HouseholdCreateActions } from "@/components/groups/household-create-actions";
@@ -28,6 +30,14 @@ import type {
 } from "@/lib/server/expenses";
 import type { AuthenticatedUserProfile } from "@/lib/server/authenticated-user";
 import { getPersonInitials } from "@/lib/people/initials";
+import {
+  clearExpenseMutationRecovery,
+  isOptimisticExpenseId,
+  useExpenseMutationRecovery,
+  useHouseholdExpenseBalancePending,
+  type ExpenseRecoveryDraft,
+} from "@/lib/app-data/optimistic-expenses";
+import { appDataQueryKeys } from "@/lib/app-data/query-keys";
 
 type Props = {
   groupId: string;
@@ -59,14 +69,20 @@ export function GroupExpenses({
   allowCreate = true,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const recovery = useExpenseMutationRecovery(currentUserId);
   const [activeExpense, setActiveExpense] = useState<{
     expense: GroupExpenseView;
     readOnly: boolean;
+    recoveryDraft?: ExpenseRecoveryDraft;
     key: number;
   } | null>(null);
   const [newExpenseKey, setNewExpenseKey] = useState<number | null>(null);
+  const [newExpenseRecoveryDraft, setNewExpenseRecoveryDraft] =
+    useState<ExpenseRecoveryDraft | undefined>();
   const [paymentDialog, setPaymentDialog] = useState<HouseholdPaymentView | "new" | null>(null);
-  const [instance, setInstance] = useState(0);
+  const instance = useRef(0);
   const groupIsComplete =
     groups.find((group) => group.id === groupId)?.members.length === 2;
   const groupMemberIds = (groups.find((group) => group.id === groupId)?.members ?? [])
@@ -97,6 +113,17 @@ export function GroupExpenses({
       : balance < 0n
         ? "text-destructive-foreground"
         : "text-muted-foreground";
+  const pendingExpenseBalance = useHouseholdExpenseBalancePending(
+    currentUserId,
+    groupId,
+  );
+  const balancePending = pendingExpenseBalance;
+  const retryBalance = () =>
+    void queryClient.refetchQueries({
+      queryKey: appDataQueryKeys.household(currentUserId),
+      exact: true,
+      type: "active",
+    });
   const visibleExpenses = expenses.filter((expense) => inSelectedMonth(expense.expenseDate, month));
   const monthlyTotal = visibleExpenses.reduce(
     (total, expense) => total + BigInt(expense.amountCents),
@@ -113,8 +140,7 @@ export function GroupExpenses({
   const receiver = balances.find((member) => BigInt(member.balanceCents) > 0n);
 
   function openExpense(expense: GroupExpenseView) {
-    const key = instance + 1;
-    setInstance(key);
+    const key = ++instance.current;
     setActiveExpense({
       expense,
       readOnly: expense.payerUserId !== currentUserId,
@@ -124,11 +150,48 @@ export function GroupExpenses({
 
   function addExpense() {
     if (!groupIsComplete || !allowCreate) return;
-    const key = instance + 1;
-    setInstance(key);
+    const key = ++instance.current;
     setNewExpenseKey(key);
     setActiveExpense(null);
   }
+
+  useEffect(() => {
+    const item = recovery.data;
+    if (!item || item.route.split("?")[0] !== pathname) return;
+    if (activeExpense || newExpenseKey !== null) return;
+    const timeout = window.setTimeout(() => {
+      if (activeExpense || newExpenseKey !== null) return;
+      const key = ++instance.current;
+      if (item.kind === "create") {
+        setActiveExpense(null);
+        setNewExpenseRecoveryDraft(item.draft);
+        setNewExpenseKey(key);
+      } else {
+        const expense = item.groupBefore ??
+          (item.before && "payerUserId" in item.before
+            ? (item.before as GroupExpenseView)
+            : null);
+        if (expense) {
+          setActiveExpense({
+            expense,
+            readOnly: expense.payerUserId !== currentUserId,
+            recoveryDraft: item.draft,
+            key,
+          });
+          setNewExpenseKey(null);
+        }
+      }
+      clearExpenseMutationRecovery(queryClient, currentUserId);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [
+    activeExpense,
+    currentUserId,
+    newExpenseKey,
+    pathname,
+    queryClient,
+    recovery.data,
+  ]);
 
   function renderExpenseRows(items: GroupExpenseView[], includeDate: boolean) {
     return (
@@ -137,9 +200,16 @@ export function GroupExpenses({
           <li key={expense.id}>
             <button
               type="button"
-              onClick={() => openExpense(expense)}
+              onClick={() => {
+                if (!isOptimisticExpenseId(expense.id)) openExpense(expense);
+              }}
+              disabled={isOptimisticExpenseId(expense.id)}
               aria-label={
-                (expense.payerUserId === currentUserId ? "Editar" : "Ver") +
+                (isOptimisticExpenseId(expense.id)
+                  ? "Gasto guardándose"
+                  : expense.payerUserId === currentUserId
+                    ? "Editar"
+                    : "Ver") +
                 " gasto " +
                 expense.description +
                 ", pagó " +
@@ -166,6 +236,7 @@ export function GroupExpenses({
                       <span className="min-w-0 truncate">
                         {expense.categoryName}
                         {expense.categoryIsArchived ? " · archivada" : ""}
+                        {isOptimisticExpenseId(expense.id) ? " · Guardando…" : ""}
                       </span>
                     </span>
                   ) : (
@@ -285,7 +356,22 @@ export function GroupExpenses({
 
       <section className="mt-4 space-y-6 sm:mt-6 sm:space-y-8">
       <section aria-label={`Saldo personal de ${groupName}`}>
-          {groupIsComplete ? (
+          {balancePending === "error" ? (
+            <div className="flex min-h-14 items-center justify-between gap-3 border-y border-border py-3 text-sm text-muted-foreground" role="status">
+              <span>No se pudo actualizar el saldo acumulado.</span>
+              <button
+                type="button"
+                className="min-h-11 shrink-0 rounded-xl px-2 font-semibold underline underline-offset-4 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
+                onClick={retryBalance}
+              >
+                Reintentar
+              </button>
+            </div>
+          ) : balancePending === "pending" ? (
+            <p className="flex min-h-14 w-full items-center border-y border-border py-3 text-sm text-muted-foreground" role="status">
+              Actualizando saldo acumulado…
+            </p>
+          ) : groupIsComplete ? (
             personalBalance ? (
               <p className="flex min-h-14 w-full items-center justify-between gap-4 border-y border-border py-3">
                 <span className={`min-w-0 font-medium ${balanceStatusClassName}`}>
@@ -328,6 +414,7 @@ export function GroupExpenses({
         currentUserId={currentUserId}
         today={today}
         initialExpense={activeExpense?.expense ?? null}
+        recoveryDraft={activeExpense?.recoveryDraft}
         allowIncomeCreation={false}
         readOnly={activeExpense?.readOnly ?? false}
         onSaved={() => {
@@ -339,13 +426,17 @@ export function GroupExpenses({
         key={"new-" + (newExpenseKey ?? "closed")}
         open={newExpenseKey !== null}
         onOpenChange={(open) => {
-          if (!open) setNewExpenseKey(null);
+          if (!open) {
+            setNewExpenseKey(null);
+            setNewExpenseRecoveryDraft(undefined);
+          }
         }}
         groups={groups}
         categories={categories}
         currentUserId={currentUserId}
         today={today}
         initialExpense={null}
+        recoveryDraft={newExpenseRecoveryDraft}
         allowIncomeCreation={false}
         defaultGroupId={groupId}
         defaultShared

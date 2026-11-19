@@ -68,6 +68,25 @@ describe("household payment integration", () => {
     await expect(createHouseholdPayment(a.id, { ...p, amount: "20" })).rejects.toThrow();
     expect(await getPersonalMonthlyTotal(a.id, "2026-10-01", "2026-11-01")).toBe(total); expect(await db.select().from(householdPayments)).toHaveLength(1);
   });
+  it("does not write supplied notes and preserves historical notes when voiding", async () => {
+    await createExpense(a.id, { ...draft, sharedSpaceId: space });
+    const payment = await createHouseholdPayment(
+      a.id,
+      { ...input(b.id), note: "should not be stored".repeat(20) },
+    );
+    const [created] = await db.select().from(householdPayments);
+    expect(created.note).toBeNull();
+
+    await db.update(householdPayments)
+      .set({ note: "Nota histórica" })
+      .where(eq(householdPayments.id, payment.id));
+    await voidHouseholdPayment(b.id, payment.id);
+    const [voided] = await db.select().from(householdPayments);
+    expect(voided).toMatchObject({
+      note: "Nota histórica",
+      voidedByUserId: b.id,
+    });
+  });
   it("prevents deleting memberships with payment history including voided payments", async () => {
     await createExpense(a.id, { ...draft, sharedSpaceId: space }); const p = await createHouseholdPayment(a.id, input(b.id)); await voidHouseholdPayment(a.id, p.id);
     await expect(db.delete(sharedSpaceMembers).where(eq(sharedSpaceMembers.userId, b.id))).rejects.toThrow();

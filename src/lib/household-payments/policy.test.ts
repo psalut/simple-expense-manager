@@ -24,7 +24,20 @@ describe("household payments", () => {
   });
   it("validates exact amounts and date boundaries", () => {
     expect(validatePayment(draft, "2026-11-06")?.amountCents).toBe(3000n);
-    for (const patch of [{ amount: "0" }, { amount: "-1" }, { amount: "1.001" }, { amount: "92233720368547758.08" }, { date: "2026-11-07" }, { date: "2026-02-30" }, { note: "a".repeat(201) }]) expect(validatePayment({ ...draft, ...patch }, "2026-11-06")).toBeNull();
+    for (const patch of [{ amount: "0" }, { amount: "-1" }, { amount: "1.001" }, { amount: "92233720368547758.08" }, { date: "2026-11-07" }, { date: "2026-02-30" }]) expect(validatePayment({ ...draft, ...patch }, "2026-11-06")).toBeNull();
     expect(validatePayment({ ...draft, date: "2020-01-01" }, "2026-11-06")).not.toBeNull();
+  });
+  it("ignores legacy note fields instead of accepting them for new payments", () => {
+    const result = validatePayment(
+      { ...draft, note: "a".repeat(201) },
+      "2026-11-06",
+    );
+    expect(result).toEqual({
+      amountCents: 3000n,
+      date: "2026-11-06",
+      key: draft.key,
+      expectedPayer: "b",
+    });
+    expect(result).not.toHaveProperty("note");
   });
 });

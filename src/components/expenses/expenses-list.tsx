@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowUp, ChevronLeft, ChevronRight, Plus, ReceiptText, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseEditorDialog, type ExpenseGroupOption } from "@/components/expenses/expense-editor-dialog";
@@ -18,6 +20,12 @@ import {
   personalMonthlyBalanceCents,
 } from "@/lib/incomes/personal-monthly-balance";
 import { ExpenseCategoryIcon } from "@/components/expenses/expense-category-icon";
+import {
+  clearExpenseMutationRecovery,
+  isOptimisticExpenseId,
+  useExpenseMutationRecovery,
+  type ExpenseRecoveryDraft,
+} from "@/lib/app-data/optimistic-expenses";
 
 type PersonalMovementView = PersonalExpenseView | PersonalIncomeView;
 
@@ -36,14 +44,28 @@ type Props = {
 export function ExpensesList({ expenses, incomes, categories, groups, currentUserId, account, month, monthlyTotal, today }: Props) {
   const [editor, setEditor] = useState<{
     movement: PersonalMovementView | null;
+    recoveryDraft?: ExpenseRecoveryDraft;
     key: number;
   } | null>(null);
   const instance = useRef(0);
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const recovery = useExpenseMutationRecovery(currentUserId);
 
-  function openEditor(movement: PersonalMovementView | null) {
+  function openEditor(
+    movement: PersonalMovementView | null,
+    recoveryDraft?: ExpenseRecoveryDraft,
+  ) {
     instance.current += 1;
-    setEditor({ movement, key: instance.current });
+    setEditor({ movement, recoveryDraft, key: instance.current });
   }
+
+  useEffect(() => {
+    if (!recovery.data || recovery.data.route.split("?")[0] !== pathname) return;
+    if (editor) return;
+    openEditor(recovery.data.before, recovery.data.draft);
+    clearExpenseMutationRecovery(queryClient, currentUserId);
+  }, [currentUserId, editor, pathname, queryClient, recovery.data]);
 
   const movements: PersonalMovementView[] = [
     ...expenses,
@@ -138,9 +160,22 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
                   <li key={`${movement.kind}-${movement.id}`}>
                     <button
                       type="button"
-                      onClick={() => openEditor(movement)}
+                      onClick={() => {
+                        if (
+                          movement.kind !== "expense" ||
+                          !isOptimisticExpenseId(movement.id)
+                        ) {
+                          openEditor(movement);
+                        }
+                      }}
+                      disabled={
+                        movement.kind === "expense" &&
+                        isOptimisticExpenseId(movement.id)
+                      }
                       aria-label={
-                        "Editar " + (movement.kind === "income" ? "ingreso " : "gasto ") +
+                        (movement.kind === "expense" && isOptimisticExpenseId(movement.id)
+                          ? "Gasto guardándose: "
+                          : "Editar " + (movement.kind === "income" ? "ingreso " : "gasto ")) +
                         movement.description +
                         ", " +
                         formatArs(movement.amountCents) +
@@ -167,6 +202,9 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
                                   <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-grey-olive text-white">
                                     <UsersRound aria-hidden="true" className="size-3.5" />
                                   </span>
+                                )}
+                                {isOptimisticExpenseId(movement.id) && (
+                                  <span role="status">Guardando…</span>
                                 )}
                               </>
                             )}
@@ -201,6 +239,7 @@ export function ExpensesList({ expenses, incomes, categories, groups, currentUse
         categories={categories}
         today={today}
         initialExpense={editor?.movement?.kind === "expense" ? editor.movement : null}
+        recoveryDraft={editor?.recoveryDraft}
         initialIncome={editor?.movement?.kind === "income" ? editor.movement : null}
       />
     </>

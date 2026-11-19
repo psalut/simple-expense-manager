@@ -10,14 +10,20 @@ import {
 } from "react";
 import {
   QueryClientProvider,
+  useQuery,
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
 import { Toast } from "@base-ui/react/toast";
-import { Check, X } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { AlertCircle, Check, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { createAppQueryClient } from "@/lib/app-data/query-client";
 import { appDataQueryKeys, isCasaEntry } from "@/lib/app-data/query-keys";
+import {
+  dismissExpenseMutationNotice,
+  recoverExpenseMutation,
+  type ExpenseMutationNotice,
+} from "@/lib/app-data/optimistic-expenses";
 
 export type AppUser = { id: string; name: string; email: string };
 
@@ -38,7 +44,7 @@ export function AppQueryProvider({
       <AppQueryClientContext.Provider value={queryClient}>
         <QueryClientProvider client={queryClient}>
           <Toast.Provider timeout={3500} limit={3}>
-            <AppToastViewport />
+            <AppToastViewport userId={user.id} />
             <CasaEntryObserver userId={user.id} />
             {children}
           </Toast.Provider>
@@ -48,8 +54,48 @@ export function AppQueryProvider({
   );
 }
 
-function AppToastViewport() {
-  const { toasts } = Toast.useToastManager();
+function AppToastViewport({ userId }: { userId: string }) {
+  const toastManager = Toast.useToastManager<{ noticeId?: string }>();
+  const { toasts } = toastManager;
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const shownNoticeIds = useRef(new Set<string>());
+  const noticesQuery = useQuery({
+    queryKey: appDataQueryKeys.expenseMutationNotices(userId),
+    queryFn: async () => [] as ExpenseMutationNotice[],
+    enabled: false,
+    initialData: [] as ExpenseMutationNotice[],
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    for (const notice of noticesQuery.data) {
+      if (shownNoticeIds.current.has(notice.id)) continue;
+      shownNoticeIds.current.add(notice.id);
+      toastManager.add({
+        id: notice.id,
+        type: notice.type === "error" ? "expense-error" : "success",
+        title: notice.title,
+        description: notice.description,
+        timeout: notice.type === "error" ? 0 : 3500,
+        priority: notice.type === "error" ? "high" : "low",
+        data: { noticeId: notice.id },
+        onClose:
+          notice.type === "error"
+            ? () => dismissExpenseMutationNotice(queryClient, userId, notice.id)
+            : undefined,
+      });
+      if (notice.type === "success") {
+        dismissExpenseMutationNotice(queryClient, userId, notice.id);
+      }
+    }
+  }, [noticesQuery.data, queryClient, toastManager, userId]);
+
+  function recoverExpense(noticeId: string) {
+    const recovery = recoverExpenseMutation(queryClient, userId, noticeId);
+    toastManager.close(noticeId);
+    if (recovery) router.push(recovery.route);
+  }
 
   return (
     <Toast.Portal>
@@ -63,11 +109,35 @@ function AppToastViewport() {
             <Toast.Content className="flex min-w-0 items-center gap-3 px-4 py-2">
               <span
                 aria-hidden="true"
-                className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-bordeaux text-white"
+                className={
+                  "grid size-8 shrink-0 place-items-center rounded-full text-white " +
+                  (toast.type === "expense-error"
+                    ? "bg-destructive"
+                    : "bg-brand-bordeaux")
+                }
               >
-                <Check size={16} />
+                {toast.type === "expense-error" ? (
+                  <AlertCircle size={16} />
+                ) : (
+                  <Check size={16} />
+                )}
               </span>
-              <Toast.Title className="min-w-0 flex-1 text-sm font-semibold" />
+              <span className="min-w-0 flex-1">
+                <Toast.Title className="text-sm font-semibold" />
+                <Toast.Description className="mt-0.5 text-sm text-muted-foreground" />
+              </span>
+              {toast.type === "expense-error" && (
+                <Toast.Action
+                  className="min-h-11 shrink-0 rounded-xl px-2 text-sm font-semibold underline underline-offset-4 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
+                  onClick={() => {
+                    if (toast.data?.noticeId) {
+                      recoverExpense(toast.data.noticeId);
+                    }
+                  }}
+                >
+                  Recuperar
+                </Toast.Action>
+              )}
               <Toast.Close
                 aria-label="Cerrar notificación"
                 className="grid size-11 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"

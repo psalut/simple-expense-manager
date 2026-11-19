@@ -7,7 +7,7 @@
 
 Esta especificación describe el código del repositorio: Casa admite hasta dos integrantes; también existen gastos e ingresos personales, reembolsos y caché cliente. Los informes anteriores registran un despliegue y una transición de datos, pero no prueban el estado actual de producción, sus migraciones o ramas. Consultar el entorno antes de operar sobre él. El historial de esa transición se conserva en [Activación de Casa](../HOUSEHOLD_TRANSITION.md).
 
-Las actualizaciones optimistas para gastos están pendientes. Hoy las acciones esperan la confirmación del servidor y luego invalidan las consultas afectadas.
+Las altas, ediciones y bajas de gastos se proyectan optimistamente sobre el historial mensual personal y la actividad de Casa. Los ingresos y reembolsos no usan este mecanismo.
 
 ## 1. Stack
 
@@ -70,11 +70,21 @@ El comportamiento siguiente describe el código, sin afirmar su despliegue.
 
 - TanStack Query v5 para consultas de **Gastos, Casa y Categorías**, con caché privada segmentada por usuario.
 - `staleTime = 5 * 60 * 1000` (5 minutos); caché **en memoria**, no persistida.
-- Invalidación de consultas afectadas tras altas, ediciones y eliminaciones, actualizando historial, totales y balances.
+- Proyección optimista de gastos en las consultas mensuales personales y de Casa; la respuesta del servidor sigue siendo la fuente de verdad y dispara la reconciliación de las claves afectadas.
 - **Casa:** al navegar a esa pestaña, revalidar en segundo plano aun si la caché todavía está fresca. Es necesario para detectar gastos agregados desde el teléfono de la otra persona.
 - Recuperación de red / foco: aplicar las opciones de TanStack Query documentadas por la implementación, evitando afirmar que un refetch ocurre cada vez si los datos siguen frescos y no hay invalidación.
 - Ante error de red, conservar los últimos datos permitidos con un estado de error/reintento adecuado; ante sesión inválida, purgar los datos privados.
 - Evitar poner gastos o respuestas de sesión en cachés públicas de servidor o en service workers.
+
+### Escrituras optimistas de gastos
+
+- Los importes y totales se actualizan usando centavos enteros. Al cambiar la fecha, los meses personales anterior y nuevo se proyectan juntos; Casa filtra la actividad por el mes seleccionado y deriva su total mensual de los gastos visibles.
+- Las altas usan un ID con prefijo temporal, reemplazado por el ID persistido al confirmar el servidor. Un gasto temporal no se puede abrir para editar ni eliminar.
+- Las operaciones pendientes se reaplican a las respuestas de consulta antes de que TanStack Query las almacene. Las ediciones/bajas del mismo gasto se serializan para el servidor; el rollback solo modifica la entidad afectada y no repone snapshots completos.
+- Las claves personales de los meses afectados y Casa (si corresponde) se invalidan al finalizar. Una operación confirmada permanece proyectada hasta que sus lecturas afectadas confirmen el resultado, incluso si el usuario navegó a otra pantalla.
+- El balance acumulado de Casa continúa siendo calculado por el servidor. Mientras haya un cambio compartido pendiente de reconciliación, la interfaz muestra «Actualizando saldo acumulado…» en vez de estimar el balance.
+- Al confirmar una operación válida, el editor se cierra sin esperar al servidor; la validación local fallida no lo cierra. Si el servidor falla, se revierte solo el cambio afectado y aparece un aviso persistente con una acción explícita para recuperar el borrador y reintentar. El formulario no se superpone a otro que el usuario haya abierto. El toast de éxito aparece únicamente después de la confirmación.
+- Si falla la revalidación del balance acumulado de Casa, se conserva el último balance confirmado y se ofrece reintentar la consulta; no se deriva una fórmula optimista en el cliente.
 
 ### Endpoints
 
@@ -108,11 +118,11 @@ El antecedente del reset y las migraciones ejecutadas en octubre de 2026 se cons
 
 La interfaz los denomina «reembolsos». `household_payments` guarda participantes, creador, importe en centavos, fecha, clave de idempotencia y anulación. Los reembolsos no permiten ingresar ni editar notas, y no se prevé solicitarlas en este flujo. La columna `note` puede conservarse por compatibilidad con datos históricos; la escritura de nuevos reembolsos no la usa. La propuesta anterior de una nota opcional quedó descartada. Cualquiera de los dos integrantes puede registrar o anular un reembolso; el servidor deriva de la deuda quién paga y recibe, comprueba que no exceda la deuda y serializa la operación con mutaciones de gastos y membresía. Para corregirlo se anula y se registra otro. La fecha no puede ser futura; no se reconstruyen saldos históricos.
 
-El saldo acumulado es gastos pagados menos parte asignada, más reembolsos activos enviados menos recibidos. La actividad se filtra por mes, incluye anulaciones y el total mensual suma únicamente gastos. Los reembolsos no forman parte del saldo personal mensual. No hay actualización optimista ni tiempo real.
+El saldo acumulado es gastos pagados menos parte asignada, más reembolsos activos enviados menos recibidos. La actividad se filtra por mes, incluye anulaciones y el total mensual suma únicamente gastos. Los reembolsos no forman parte del saldo personal mensual y mantienen su flujo no optimista. No hay sincronización en tiempo real.
 
 ## 10. Verificación y pendientes
 
-Las pruebas unitarias y de integración, lint, tipos y build se describen en el [README](../README.md). Las pruebas de integración requieren una base local descartable explícita; crean y eliminan esquemas aislados. Los resultados históricos no garantizan el estado actual. Quedan pendientes las actualizaciones optimistas de gastos y confirmar por separado el estado de migraciones y despliegue de cada entorno.
+Las pruebas unitarias y de integración, lint, tipos y build se describen en el [README](../README.md). Las pruebas de integración requieren una base local descartable explícita; crean y eliminan esquemas aislados. Los resultados históricos no garantizan el estado actual. Confirmar por separado el estado de migraciones y despliegue de cada entorno.
 
 ## 11. Límites de producto
 

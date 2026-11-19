@@ -25,7 +25,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select";
 import type { CategoryView } from "@/lib/categories/types";
-import { splitAmountCents } from "@/lib/expenses/policy";
+import {
+  splitAmountCents,
+  validateExpenseDraft,
+  type ExpenseDraft,
+} from "@/lib/expenses/policy";
 import { switchMovementDraft } from "@/lib/expenses/movement-draft";
 import {
   shouldApplyAutomaticSuggestion,
@@ -39,9 +43,14 @@ import type {
 import type { PersonalIncomeView } from "@/lib/server/incomes";
 import { callServerAction } from "@/lib/action-result";
 import {
-  invalidateExpenseRelatedData,
   invalidatePersonalExpenseData,
 } from "@/lib/app-data/query-keys";
+import {
+  OPTIMISTIC_EXPENSE_ID_PREFIX,
+  runOptimisticExpenseChange,
+  type ExpenseMutationRecovery,
+  type ExpenseRecoveryDraft,
+} from "@/lib/app-data/optimistic-expenses";
 import { cn } from "@/lib/utils";
 
 const expenseControlClassName =
@@ -64,6 +73,7 @@ type Props = {
   categories: CategoryView[];
   today: string;
   initialExpense: PersonalExpenseView | GroupExpenseView | null;
+  recoveryDraft?: ExpenseRecoveryDraft;
   initialIncome?: PersonalIncomeView | null;
   allowIncomeCreation?: boolean;
   defaultGroupId?: string | null;
@@ -80,6 +90,7 @@ export function ExpenseEditorDialog({
   categories,
   today,
   initialExpense,
+  recoveryDraft,
   initialIncome = null,
   allowIncomeCreation = true,
   defaultGroupId = null,
@@ -96,36 +107,49 @@ export function ExpenseEditorDialog({
       group.members.some((member) => member.userId === currentUserId),
   );
   const initialShared =
-    initialExpense?.sharedSpaceId !== null &&
-    initialExpense?.sharedSpaceId !== undefined
+    recoveryDraft
+      ? recoveryDraft.sharedSpaceId !== null
+      : initialExpense?.sharedSpaceId !== null &&
+          initialExpense?.sharedSpaceId !== undefined
       ? true
       : defaultShared;
   const initialGroupId =
-    initialExpense?.sharedSpaceId ??
-    defaultGroupId ??
-    (defaultShared && completeGroups.length === 1 ? completeGroups[0].id : "");
+    recoveryDraft
+      ? recoveryDraft.sharedSpaceId ?? ""
+      : initialExpense?.sharedSpaceId ??
+        defaultGroupId ??
+        (defaultShared && completeGroups.length === 1 ? completeGroups[0].id : "");
   const isExistingIncome = initialIncome !== null;
 
   const [isIncome, setIsIncome] = useState(isExistingIncome);
   const [description, setDescription] = useState(
-    initialIncome?.description ?? initialExpense?.description ?? "",
+    recoveryDraft?.description ??
+      initialIncome?.description ??
+      initialExpense?.description ??
+      "",
   );
   const [amount, setAmount] = useState(
-    initialIncome
-      ? centsToInput(initialIncome.amountCents)
-      : initialExpense
-        ? centsToInput(initialExpense.amountCents)
-        : "",
+    recoveryDraft?.amount ??
+      (initialIncome
+        ? centsToInput(initialIncome.amountCents)
+        : initialExpense
+          ? centsToInput(initialExpense.amountCents)
+          : ""),
   );
   const [expenseDate, setExpenseDate] = useState(
-    initialIncome?.incomeDate ?? initialExpense?.expenseDate ?? today,
+    recoveryDraft?.expenseDate ??
+      initialIncome?.incomeDate ??
+      initialExpense?.expenseDate ??
+      today,
   );
   const [mobileDateSelectionOpen, setMobileDateSelectionOpen] = useState(false);
   const [draftExpenseDate, setDraftExpenseDate] = useState(expenseDate);
   const [shared, setShared] = useState(isExistingIncome ? false : initialShared);
   const [groupId, setGroupId] = useState(isExistingIncome ? "" : initialGroupId);
   const [categoryId, setCategoryId] = useState(
-    isExistingIncome ? "" : initialExpense?.categoryId ?? "",
+    isExistingIncome
+      ? ""
+      : recoveryDraft?.categoryId ?? initialExpense?.categoryId ?? "",
   );
   const [error, setError] = useState("");
   const [suggestionStatus, setSuggestionStatus] =
@@ -377,39 +401,71 @@ export function ExpenseEditorDialog({
       incomeDate: expenseDate,
     };
 
+    const savingIncome = isIncome || initialIncome !== null;
+    if (!savingIncome) {
+      const validated = validateExpenseDraft(expenseDraft);
+      if (!validated.success) {
+        setError(validated.error);
+        submitting.current = false;
+        return;
+      }
+      const category =
+        categoriesForSelect.find(
+          (candidate) => candidate.id === expenseDraft.categoryId,
+        ) ?? historicalCategory;
+      if (!category || category.id !== expenseDraft.categoryId) {
+        setError("Elegí una categoría disponible para guardar el gasto.");
+        submitting.current = false;
+        return;
+      }
+      if (
+        initialExpense &&
+        initialExpense.id.startsWith(OPTIMISTIC_EXPENSE_ID_PREFIX)
+      ) {
+        setError("Este gasto todavía se está guardando. Esperá a que termine para editarlo.");
+        submitting.current = false;
+        return;
+      }
+
+      const recovery: ExpenseMutationRecovery = {
+        route: window.location.pathname + window.location.search,
+        kind: initialExpense ? "update" : "create",
+        before: initialExpense,
+        groupBefore: null,
+        draft: expenseDraft,
+      };
+      const mutation = saveExpense(expenseDraft, validated.data, category, recovery);
+      onOpenChange(false);
+      void mutation
+        .then((result) => {
+          if (result.success) {
+            onSaved?.(initialExpense ? "updated" : "created");
+          }
+        })
+        .finally(() => {
+          submitting.current = false;
+        });
+      return;
+    }
+
     startSaving(async () => {
       try {
-        const savingIncome = isIncome || initialIncome !== null;
-        const result = savingIncome
-          ? await callServerAction(() =>
-              initialIncome
-                ? updateIncomeAction(initialIncome.id, incomeDraft)
-                : createIncomeAction(incomeDraft),
-            )
-          : await callServerAction(() =>
-              initialExpense
-                ? updateExpenseAction(initialExpense.id, expenseDraft)
-                : createExpenseAction(expenseDraft),
-            );
+        const result = await callServerAction(() =>
+          initialIncome
+            ? updateIncomeAction(initialIncome.id, incomeDraft)
+            : createIncomeAction(incomeDraft),
+        );
         if (!result.success) {
           setError(result.error);
           return;
         }
-        if (savingIncome) {
-          void invalidatePersonalExpenseData(queryClient, currentUserId);
-        } else {
-          void invalidateExpenseRelatedData(queryClient, currentUserId);
-        }
+        void invalidatePersonalExpenseData(queryClient, currentUserId);
         const isUpdating = initialExpense !== null || initialIncome !== null;
         const outcome = isUpdating ? "updated" : "created";
         toastManager.add({
-          id: savingIncome
-            ? outcome === "created" ? "income-created" : "income-updated"
-            : outcome === "created" ? "expense-created" : "expense-updated",
+          id: outcome === "created" ? "income-created" : "income-updated",
           type: "success",
-          title:
-            (savingIncome ? "Ingreso" : "Gasto") +
-            (outcome === "created" ? " guardado" : " actualizado"),
+          title: "Ingreso" + (outcome === "created" ? " guardado" : " actualizado"),
           timeout: 3500,
           priority: "low",
         });
@@ -421,35 +477,136 @@ export function ExpenseEditorDialog({
     });
   }
 
+  async function saveExpense(expenseDraft: {
+    amount: string;
+    description: string;
+    categoryId: string;
+    expenseDate: string;
+    sharedSpaceId: string | null;
+  }, draft: ExpenseDraft, category: CategoryView, recovery: ExpenseMutationRecovery) {
+    const id =
+      initialExpense?.id ??
+      `${OPTIMISTIC_EXPENSE_ID_PREFIX}${crypto.randomUUID()}`;
+    const selectedSpace = groups.find(
+      (group) => group.id === draft.sharedSpaceId,
+    );
+    const sharedSpaceName = draft.sharedSpaceId
+      ? selectedSpace?.name ?? initialExpense?.sharedSpaceName ?? null
+      : null;
+    const after: PersonalExpenseView = {
+      kind: "expense",
+      id,
+      amountCents: draft.amountCents.toString(),
+      currency: "ARS",
+      description: draft.description,
+      categoryId: draft.categoryId,
+      categoryName: category.name,
+      categoryColor: category.color,
+      categoryIcon: category.icon,
+      categoryIsArchived: category.isArchived,
+      expenseDate: draft.expenseDate,
+      sharedSpaceId: draft.sharedSpaceId,
+      sharedSpaceName,
+    };
+    const existingGroupExpense =
+      initialExpense && "payerName" in initialExpense
+        ? initialExpense
+        : null;
+    const payerName =
+      selectedSpace?.members.find((member) => member.userId === currentUserId)
+        ?.name ?? existingGroupExpense?.payerName;
+    const groupAfter: GroupExpenseView | null =
+      draft.sharedSpaceId && sharedSpaceName && payerName
+        ? {
+            ...after,
+            createdAt:
+              existingGroupExpense?.createdAt ?? new Date().toISOString(),
+            payerUserId: currentUserId,
+            payerName,
+          }
+        : null;
+
+    return runOptimisticExpenseChange(
+      queryClient,
+      currentUserId,
+      {
+        kind: initialExpense ? "update" : "create",
+        before: initialExpense,
+        after,
+        groupAfter,
+      },
+      () =>
+        callServerAction(() =>
+          initialExpense
+            ? updateExpenseAction(initialExpense.id, expenseDraft)
+            : createExpenseAction(expenseDraft),
+        ),
+      { recovery },
+    );
+  }
+
   function removeMovement() {
     if ((!initialExpense && !initialIncome) || submitting.current) return;
     submitting.current = true;
     setError("");
+    if (initialExpense) {
+      const recovery: ExpenseMutationRecovery = {
+        route: window.location.pathname + window.location.search,
+        kind: "delete",
+        before: initialExpense,
+        groupBefore: null,
+        draft: {
+          amount: centsToInput(initialExpense.amountCents),
+          description: initialExpense.description,
+          categoryId: initialExpense.categoryId,
+          expenseDate: initialExpense.expenseDate,
+          sharedSpaceId: initialExpense.sharedSpaceId,
+        },
+      };
+      const mutation = runOptimisticExpenseChange(
+        queryClient,
+        currentUserId,
+        {
+          kind: "delete",
+          before: initialExpense,
+          after: null,
+          groupAfter: null,
+        },
+        () => callServerAction(() => deleteExpenseAction(initialExpense.id)),
+        { recovery },
+      );
+      setShowDeleteConfirmation(false);
+      onOpenChange(false);
+      void mutation
+        .then((result) => {
+          if (result.success) onSaved?.("deleted");
+        })
+        .finally(() => {
+          submitting.current = false;
+        });
+      return;
+    }
+
     startSaving(async () => {
       try {
-        const result = initialIncome
-          ? await callServerAction(() => deleteIncomeAction(initialIncome.id))
-          : await callServerAction(() => deleteExpenseAction(initialExpense!.id));
+        const result = await callServerAction(() =>
+          deleteIncomeAction(initialIncome!.id),
+        );
         if (!result.success) {
           setError(result.error);
           setShowDeleteConfirmation(false);
           return;
         }
-        if (initialIncome) {
-          void invalidatePersonalExpenseData(queryClient, currentUserId);
-        } else {
-          void invalidateExpenseRelatedData(queryClient, currentUserId);
-        }
+        void invalidatePersonalExpenseData(queryClient, currentUserId);
         toastManager.add({
-          id: initialIncome ? "income-deleted" : "expense-deleted",
+          id: "income-deleted",
           type: "success",
-          title: initialIncome ? "Ingreso eliminado" : "Gasto eliminado",
+          title: "Ingreso eliminado",
           timeout: 3500,
           priority: "low",
         });
         setShowDeleteConfirmation(false);
         onOpenChange(false);
-        onSaved?.("deleted");
       } finally {
         submitting.current = false;
       }

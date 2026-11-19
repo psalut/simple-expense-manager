@@ -7,6 +7,12 @@ export const appDataQueryKeys = {
   expenses: (userId: string) => [...privateRoot(userId), "expenses"] as const,
   expenseMonth: (userId: string, month: string) =>
     [...privateRoot(userId), "expenses", month] as const,
+  pendingExpenseOperations: (userId: string) =>
+    [...privateRoot(userId), "expense-mutations"] as const,
+  expenseMutationNotices: (userId: string) =>
+    [...privateRoot(userId), "expense-mutation-notices"] as const,
+  expenseMutationRecovery: (userId: string) =>
+    [...privateRoot(userId), "expense-mutation-recovery"] as const,
   household: (userId: string) => [...privateRoot(userId), "household"] as const,
   categories: (userId: string) => [...privateRoot(userId), "categories"] as const,
   archivedCategories: (userId: string) =>

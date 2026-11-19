@@ -16,6 +16,7 @@ import type {
   HouseholdPageTransport,
 } from "@/lib/app-data/types";
 import { useAppUser } from "@/components/app-query-provider";
+import { applyPendingExpenseChanges } from "@/lib/app-data/optimistic-expenses";
 
 export function useExpensePageData(month: string) {
   const user = useAppUser();
@@ -27,7 +28,15 @@ export function useExpensePageData(month: string) {
         `/api/app-data/expenses?month=${encodeURIComponent(month)}`,
         signal,
         queryClient,
-      ).then(hydrateExpensePageData),
+      )
+        .then(hydrateExpensePageData)
+        .then((data) =>
+          applyPendingExpenseChanges(
+            queryClient,
+            appDataQueryKeys.expenseMonth(user.id, month),
+            data,
+          ),
+        ),
     enabled: typeof window !== "undefined",
   });
 }
@@ -42,7 +51,15 @@ export function useHouseholdPageData() {
         "/api/app-data/household",
         signal,
         queryClient,
-      ).then(hydrateHouseholdPageData),
+      )
+        .then(hydrateHouseholdPageData)
+        .then((data) =>
+          applyPendingExpenseChanges(
+            queryClient,
+            appDataQueryKeys.household(user.id),
+            data,
+          ),
+        ),
     enabled: typeof window !== "undefined",
     refetchOnMount: false,
     // Casa is forced fresh by the single pathname observer in the provider.
@@ -127,4 +144,3 @@ function hydrateCategories(categories: CategoryTransport[]): CategoryView[] {
 export function getPrivateDataErrorMessage() {
   return "No se pudieron cargar los datos. Revisá la conexión e intentá nuevamente.";
 }
-
